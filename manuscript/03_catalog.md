@@ -1,6 +1,6 @@
 # An atlas of archived CICY presentations {#sec:catalog}
 
-## The population and its encodings
+## Catalogue records, Hodge pairs, and product entries
 
 The archive is the textual `CIProData/Cicy3` member of CIPro {{UPSTREAM_TAG}}. The loader checks both the release ZIP and member digests and parses the data without evaluating Wolfram source code. It validates the ID sequence, matrix shape, inferred ambient dimensions, and the stored Euler relation. The archive carries one row per published presentation, with the matrix and IDs alongside `H11`, `H21`, `Euler`, `Favour`, and `IsProduct` [@cipro-release; @candelas-cicy]. Its display dimensions $n_i=\sum_aq_{ia}-1$ are inferred by the Calabi–Yau row equation in [@prop:adjunction]. This makes a row-sum equality calculated on those inferred dimensions an internal consistency check. A general user-supplied configuration needs its ambient dimensions as separate input.
 
@@ -12,7 +12,7 @@ There are {{CICY3_RECORDS}} released rows. The {{CICY3_PRODUCT_ROWS}} product ro
 
 An individual Hodge pair fixes the Calabi–Yau threefold Euler number under the hypotheses of [@thm:hodge_euler]. Comparing diffeomorphism types of six-manifolds requires additional information, including integral cubic and Pontryagin data under the relevant classification hypotheses. A multidegree matrix also specifies a presentation, which matters when selecting an ambient basis. The census keeps distinct row IDs even when they share a Hodge pair [@wall-six-manifolds; @he-candelas-count].
 
-## Hodge and Euler distributions
+## Euler frequencies and concentration across Hodge pairs
 
 [@fig:cicy3_atlas] plots the distinct non-product Hodge pairs with their frequencies and displays the Euler counts for the whole archive. The archive has {{EULER_VALUE_COUNT}} distinct Euler values, from ${{EULER_MIN}}$ to ${{EULER_MAX}}$. The median is ${{EULER_MEDIAN}}$, and the mode ${{EULER_MODE}}$ appears in {{EULER_MODE_COUNT}} records. Of the {{EULER_ZERO_COUNT}} zero records, {{NONPRODUCT_ZERO_EULER}} are non-products. The stored fields satisfy [@eq:hodge_euler] arithmetically on all {{EULER_IDENTITY_CHECKS}} records, including the placeholder rows. The degree matrices independently give {{CICY3_TRUNCATED_RING_EULER_MATCHES}} exact scalar Euler matches by [@eq:archive_euler].
 
@@ -22,7 +22,7 @@ An individual Hodge pair fixes the Calabi–Yau threefold Euler number under the
 
 ![Concentration of recorded Hodge pairs in the non-product catalog. The cumulative curve ranks pairs by decreasing presentation multiplicity and shows the resulting share of {{CICY3_NONPRODUCT_ROWS}} records against a dashed equal-weight reference. The distribution panel bins the {{NONPRODUCT_HODGE_PAIR_COUNT}} pairs by how many times they occur. Each pair contributes once to that histogram. The figure excludes the product placeholder and uses exact finite-catalog counts.](../output/figures/cicy3-multiplicity.png){#fig:cicy3_multiplicity width=100%}
 
-## Configuration shape and favorability
+## Configuration shape and the archived favorability flag
 
 Write matrix shape as $(m,r)$, with one row per ambient factor and one column per equation. [@fig:cicy3_structure] compares this two-dimensional shape distribution with the frequency of the archive's `Favour` flag by ambient factor count. The modal shape is $({{MODAL_AMBIENT_FACTORS}},{{MODAL_CODIMENSION}})$ with {{MODAL_SHAPE_RECORDS}} records. The archive marks {{CICY3_FAVOURABLE_ROWS}} rows favorable, accounting for {{FAVOURABLE_NONPRODUCT_PERCENT}} of the non-product records. The fractions in the figure use the entire non-product subset in each group, including the flagged and unflagged presentations.
 
@@ -30,7 +30,7 @@ Favorability concerns whether ambient divisor classes generate the divisor class
 
 ![Configuration shape and released favorability flags. The shape panel counts all {{CICY3_RECORDS}} presentations by number of ambient factors and number of defining equations. Color shows the cell count on a logarithmic scale. The flag panel groups {{CICY3_NONPRODUCT_ROWS}} non-product presentations by ambient factor count and displays the fraction flagged favorable in each group. The group counts give the denominators. Light gray shape cells denote absence from this release.](../output/figures/cicy3-structure.png){#fig:cicy3_structure width=100%}
 
-## Sensitivity to the unit of counting
+## How the weights change the archive summaries
 
 ::: {.definition #def:atlas_measures title="Two measures on the same archive"}
 Let $N$ count the non-product rows, $K$ count their distinct Hodge pairs, and $n_p$ be the multiplicity of pair $p$. A non-product row $i$ with pair $p(i)$ receives one of two probability weights.
@@ -42,7 +42,7 @@ $$
 $$ {#eq:atlas_measures}
 :::
 
-The first measure selects a presentation uniformly. The second selects a pair uniformly and then chooses one of its presentations uniformly. This gives each pair total mass $1/K$ and retains every row's geometry and flags. For either measure, let $G_\pi(x)$ be the cumulative Euler share and let $q_\pi$ be the lower median.
+The first measure selects a presentation uniformly. The second selects a pair uniformly and then chooses one of its presentations uniformly. This gives each pair total mass $1/K$ and retains every row's geometry and flags. Euler characteristic is a function of the Hodge pair, so its cumulative share under equal pair weights is the fraction of pairs at or below the threshold. The pooled favorability share under those weights instead averages the flag fraction within each pair. For either measure, let $G_\pi(x)$ be the cumulative Euler share and let $q_\pi$ be the lower median.
 
 $$
 G_\pi(x)=\sum_{i:\,\chi_i\leq x}\pi(i),

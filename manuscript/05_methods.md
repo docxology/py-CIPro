@@ -6,7 +6,7 @@ For $\mathbf{k}\in\mathbb{Z}^m$, write $L_{\mathbf{k}}=\mathcal{O}_A(\mathbf{k})
 
 The single-column charge $\mathbf{k}$ fits into the `LBS` matrix, where each additional column denotes another line-bundle summand. Direct sums add dimensions and indices. Tensor products add charges for each pair of summands, and exterior powers add charges across distinct summands. These operations combine integer charge vectors before evaluating any cohomology [@anderson-cipro].
 
-## Koszul terms and what they determine
+## Restriction sequences and multiplication-map ranks
 
 For a regular hypersurface of divisor class $D$, restriction of a bundle fits into the sequence
 $$
@@ -40,7 +40,7 @@ $$ {#eq:line_index}
 
 The degree-three part of $\operatorname{ch}(L)\operatorname{Td}(TX)$ is $\ell^3/6+c_2(TX)\ell/12$ when $c_1(TX)=0$. Substitution of [@prop:integration] yields [@eq:line_index]. The index is an independent invariant of the bundle class. Individual cohomology dimensions contain additional information. On a threefold, Serre duality for $K_X\simeq\mathcal{O}_X$ gives $h^q(X,L_{\mathbf{k}})=h^{3-q}(X,L_{-\mathbf{k}})$ and reverses the sign of the index [@fulton-intersection; @anderson-cipro].
 
-## Quintic sweep and bicubic domain
+## Quintic reference values and native bicubic coverage
 
 ::: {.example #thm:example_quintic_bundles title="Independent dimensions on the quintic"}
 Define $B(s)=\binom{s+4}{4}$ for $s\ge0$ and $B(s)=0$ otherwise. On the quintic, [@eq:hypersurface_koszul] and ambient vanishing give
@@ -63,7 +63,7 @@ The analysis in [@fig:line_bundle_cohomology] compares {{QUINTIC_CHARGE_POINTS}}
 
 ![Independent line-bundle tests and native cohomology domains. The quintic panel plots $h^0$ and $-h^3$ on a symmetric logarithmic scale for $|k|\le{{QUINTIC_CHARGE_LIMIT}}$. They agree with independent binomial counts, with the two intermediate dimensions zero throughout and the index shown by the dashed curve. The bicubic panel classifies native results for integer pairs with $|a|,|b|\le{{BICUBIC_CHARGE_LIMIT}}$. Circles and triangles indicate $H^0$ and $H^3$ only, and grow with the dimension on a log scale. Squares mark acyclic results and crosses mark unsupported inputs. The separately computed index is verified on the entire grid.](../output/figures/line-bundle-cohomology.png){#fig:line_bundle_cohomology width=100%}
 
-## Exact dimensions on a specified smooth bicubic
+## Exact cohomology of a specified smooth bicubic
 
 The dimension experiment specifies a defining polynomial and evaluates the maps in the hypersurface cohomology sequence. It uses the published dimensions for a generic bicubic as a separate benchmark. Constantin and Lukas give chamber formulas on the charge lattice. Wang connects those generic formulas to maximal rank of the mixed Koszul maps. Rank drops for special defining equations are part of a broader dependence of line-bundle cohomology on complex structure [@constantin-cohomology; @wang-hilbert-cohomology; @anderson-cohomology-jumping].
 
@@ -117,7 +117,7 @@ $$ {#eq:bicubic_rank_jump_example}
 Both indices equal zero by [@eq:bicubic_index].
 :::
 
-## Where the dimensions jump
+## Rank drops and paired cohomology jumps
 
 The calculation gives exact dimensions on $X_A$ at all {{BICUBIC_EXACT_POINTS}} charges in the square from [@fig:line_bundle_cohomology]. It resolves {{BICUBIC_EXACT_UNSUPPORTED_RESOLVED}} charges outside the native dimension dispatch, agrees with all {{BICUBIC_EXACT_SUPPORTED_MATCHES}} supported native vectors, and independently recovers {{BICUBIC_EXACT_INDEX_MATCHES}} native index values by taking the alternating sum of its dimensions. The smooth member has nonzero middle cohomology at {{BICUBIC_EXACT_MIXED_NONZERO}} strictly mixed-sign charges.
 
@@ -135,8 +135,8 @@ There are {{BICUBIC_EXACT_JUMPING_POINTS}} charges with positive paired excess i
 
 ![Paired cohomology jumps on the smooth bicubic of [@def:sparse_bicubic]. Panel A maps the excess in each of $H^1$ and $H^2$ over the generic dimensions from [@eq:bicubic_paired_excess]. The nonlinear color scale is inverse-hyperbolic-sine, with its ticks in dimension units. The dashed line is the zero-index slice $b=-a$, and the ring marks the rank witness in [@thm:bicubic_jump]. Panel B shows the two signed middle-degree contributions to the index along the positive-$a$ half of the slice. On this slice $h^0=h^3=0$, so the two bars cancel at every charge.](../output/figures/bicubic-exact.png){#fig:bicubic_exact width=100%}
 
-## Symmetry and enumerative boundaries
+## Free quotients and enumerative scope
 
-Given a finite group acting freely on a smooth compact variety, the quotient is covered by the original variety with degree $|G|$. Thus $\chi(X/G)=\chi(X)/|G|$. For [@thm:example_bicubic], a verified free action of order nine on a smooth invariant bicubic gives $\chi(X/G)=-18$. A projective generator description and an invariant polynomial are data for a freeness test. One must also check fixed loci against the chosen smooth member. The linear and projective group orders can differ because scalar matrices act trivially in projective coordinates. The ambient linear actions classified by Braun and the subsequent quotient Hodge calculations provide the context for this computation [@braun-quotients; @constantin-quotients; @gray-wang-quotients].
+Given a finite group acting freely on a smooth compact variety, the quotient is covered by the original variety with degree $|G|$. Thus $\chi(X/G)=\chi(X)/|G|$. For [@thm:example_bicubic], a verified free action of order nine on a smooth invariant bicubic gives $\chi(X/G)=-18$. A projective generator description and an invariant polynomial supply the inputs to a freeness test, which checks fixed loci against the chosen smooth member. The linear and projective group orders can differ because scalar matrices act trivially in projective coordinates. To deduce a trivial canonical bundle by descent, one also verifies that the action preserves the holomorphic volume form. Braun's classification and the subsequent quotient Hodge computations supply these geometric and representation-theoretic data for the corresponding quotient cases [@braun-quotients; @constantin-quotients; @gray-wang-quotients].
 
-The released CIPro package also computes enumerative quantities linked to the mirror-map calculation [@anderson-cipro; @hosono-mirror]. A reproducible calculation preserves the chosen Kähler basis, degree bounds, series truncation, and exact options. The evidence here verifies specific ambient characteristic classes and line-bundle dimensions, and inspects recorded catalog fields. Independent validation of enumerative invariants and general equivariant cohomology requires a different experiment.
+The released CIPro package includes mirror-map computations of Gopakumar–Vafa invariants and utilities for the associated Gromov–Witten series [@anderson-cipro; @hosono-mirror]. A reproducible enumerative calculation preserves the chosen Kähler basis, degree bounds, series truncation, and exact options. The tests in [@sec:evidence] establish characteristic-class and line-bundle results on their stated inputs. Tests of enumerative series or equivariant dimensions need corresponding independent reference values.

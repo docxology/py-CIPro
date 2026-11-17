@@ -6,7 +6,7 @@ Let $A=\prod_{i=1}^{m}\mathbb{P}^{n_i}$ over $\mathbb{C}$ and let $H_i$ denote t
 
 The Python association encodes the $n_i$ in `DimPs` and the $q_{ia}$ in `Conf`. Dimensions computed from `CIDim` therefore express an expected dimension until the codimension condition is established. Degenerate sections, singular members, and generalized complete intersections defined in stages require separate geometric arguments [@anderson-cipro; @anderson-gcicy].
 
-## Adjunction and the Chern polynomial
+## Adjunction and ambient coefficient extraction
 
 ::: {.proposition #prop:adjunction title="Adjunction and normal bundle"}
 For smooth $X$ as in [@def:configuration], the normal bundle splits as $\bigoplus_{a=1}^r\mathcal{O}_A(D_a)|_X$. Its canonical bundle and total Chern class are
@@ -42,7 +42,7 @@ $$ {#eq:hodge_euler}
 
 Indeed, $h^{3,0}=h^{0,3}=1$ implies $b_3=2+2h^{2,1}$. The even Betti numbers are $b_0=b_6=1$ and $b_2=b_4=h^{1,1}$, and $b_1=b_5=0$. Their alternating sum proves [@thm:hodge_euler]. The assumptions hold for the smooth ample hypersurfaces used below by weak Lefschetz and adjunction. Product geometries can have different vanishings, as discussed in [@sec:catalog] [@green-hodge; @lazarsfeld-positivity].
 
-## Two exact reference threefolds
+## The quintic and bicubic as exact reference cases
 
 ::: {.example #thm:example_quintic title="The quintic in projective four-space"}
 For $Q=(5)$, $\dim X=4-1=3$ and [@eq:adjunction] expands to $1+10H^2-40H^3$ through degree three. By [@eq:integration], $\int_XH^3=5$. Hence $\int_Xc_2H=50$ and $\chi(X)=-200$. Weak Lefschetz gives $h^{1,1}=1$, so [@eq:hodge_euler] gives $h^{2,1}=101$.
@@ -66,7 +66,7 @@ The classes in [@eq:bicubic_chern] give $c_{2,1}=c_{2,2}=36$ and $\chi(X)=-162$.
 
 The integer-ring computation in `scripts/check_intersections.py` checks [@tbl:geometry_fixtures] without invoking the native characteristic-class routines. It asserts agreement with the released Hodge and Euler fields for the two chosen rows. These checks exercise Chern and intersection signs and normalizations before extending the Euler calculation to the complete archive.
 
-## An exact formula for the archive-wide Euler audit
+## Recovering the Euler characteristic from the cubic power sum
 
 ::: {.corollary #thm:corollary_archive_euler title="Cubic power sums for a threefold"}
 Suppose $X$ has complex dimension three and $c_1(TX)=0$. Then [@eq:integration] gives
@@ -80,7 +80,7 @@ $$ {#eq:archive_euler}
 
 For formal Chern roots $\alpha_j$, Newton's identity reads $p_3=\sum_j\alpha_j^3=c_1^3-3c_1c_2+3c_3$. The power sum is additive for exact sequences, including the ambient Euler sequences and the tangent-normal sequence in [@prop:adjunction]. It therefore gives the cubic in [@eq:archive_euler] when $c_1(TX)=0$. The computation multiplies sparse integer polynomials, discards terms outside the ambient exponent bounds, and checks that the final coefficient is divisible by three. The released Hodge and Euler fields are withheld as inputs to this calculation. Agreement with the archive is checked by record ID after each computation [@fulton-intersection].
 
-## Chern pairings and a fixed ample polarization {#sec:chern_audit}
+## Polarized Chern pairings and the Hilbert polynomial {#sec:chern_audit}
 
 ::: {.proposition #prop:quadratic_chern title="Ambient Chern pairings"}
 For the regular Calabi–Yau threefold in [@prop:adjunction], let $T_i=\int_X c_2(TX)H_i$. Then
@@ -123,9 +123,9 @@ The {{CHERN_MODAL_RECORDS}} non-product archive records at the modal Hodge pair 
 
 ![Polarized degrees and Chern pairings from the exact archive audit. (A) Hexagons group {{CICY3_NONPRODUCT_ROWS}} non-product presentations by the degree $V$ and pairing $T$ defined in [@eq:polarized_pairings]. The degree axis and color count are logarithmic. (B) One point per distinct $(V,T)$ within the modal Hodge pair. Marker area and color increase with the number of represented records. The highlighted IDs attain the minimum and maximum index at the chosen polarization in that Hodge group.](../output/figures/chern-audit.png){#fig:chern_audit width=100%}
 
-[@fig:chern_audit] conditions on a Hodge pair to hold fixed the Euler characteristic while varying the chosen polarization. An isomorphism carrying one chosen polarization to another preserves the Hilbert polynomial in [@eq:polarized_sections]. Classification of the underlying six-manifold involves the integral cup product and characteristic class as compatible data on the full cohomology lattice, under the hypotheses discussed in the scholarship section. [@wall-six-manifolds]
+[@fig:chern_audit] conditions on a Hodge pair to hold fixed the Euler characteristic while comparing the chosen polarizations across records. An isomorphism carrying one chosen polarization to another preserves the Hilbert polynomial in [@eq:polarized_sections]. Its cubic and linear coefficients recover the pair $(V,T)$, so each of the {{CHERN_MODAL_SIGNATURES}} observed pairs corresponds to a distinct Hilbert polynomial. The oriented classification statement for the underlying six-manifold appears in [@prop:integral_topological_comparison].
 
-## Multigraded Hilbert series
+## The regular-sequence Hilbert series
 
 When the defining polynomials form a regular sequence in the multigraded ambient polynomial ring, the Koszul resolution gives the Hilbert series of its quotient:
 $$

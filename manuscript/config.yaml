@@ -1,8 +1,12 @@
 paper:
-  title: "py-CIPro: Exact geometry, catalog weighting, and cohomology on Calabi–Yau threefolds"
+  title: "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds"
   date: "2026-11-17"
+  cover:
+    image: "cover/graphical-abstract.pdf"
+    alt: "Graphical abstract showing the second Chern audit, Euler medians under two catalogue weights, cohomology jumps on a specified smooth bicubic, and the Hodge groups distinguished by ambient lattice divisibility."
 authors:
-  - name: "py-CIPro contributors"
+  - name: "Daniel Friedman"
+    orcid: "0000-0001-6232-9096"
 keywords:
   - complete intersections
   - Calabi–Yau threefolds
@@ -14,6 +18,7 @@ metadata:
   language: en
 rendering:
   section_breaks: false
+  cover_height_fraction: 0.66
 render:
   formats:
     pdf: true

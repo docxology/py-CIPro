@@ -5,3 +5,4 @@ include scripts/build_concordance.py scripts/check_intersections.py scripts/rend
 include scripts/manuscript_analysis.py scripts/manuscript_variables.py scripts/z_generate_manuscript_variables.py
 include scripts/package_research.py
 include scripts/chern_audit.py scripts/atlas_comparison.py scripts/bicubic_exact.py
+include scripts/render_graphical_abstract.py scripts/integral_invariants.py

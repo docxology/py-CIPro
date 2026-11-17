@@ -70,6 +70,7 @@ def analysis_records(root, catalog):
         "chern_audit": "data/chern-audit.json",
         "atlas_comparison": "data/atlas-comparison.json",
         "bicubic_exact": "data/bicubic-exact.json",
+        "integral_invariants": "data/integral-invariants.json",
     }
     records = {name: load_json(root / path) for name, path in paths.items()}
     archive = records["archive"]
@@ -90,10 +91,14 @@ def analysis_records(root, catalog):
         or any(
             records[name]["dataset_sha256"] != catalog.member_sha256
             or records[name]["archive_sha256"] != catalog.sha256
-            for name in ("chern_audit", "atlas_comparison", "bicubic_exact")
+            for name in ("chern_audit", "atlas_comparison", "bicubic_exact", "integral_invariants")
         )
         or records["bicubic_exact"]["native_receipt_sha256"]
         != sha256((root / paths["figure_analysis"]).read_bytes()).hexdigest()
+        or records["integral_invariants"]["summary"]["records"]
+        != len(catalog.records) - archive["product_count"]
+        or records["integral_invariants"]["summary"]["hodge_groups"]
+        != archive["non_product_hodge_pair_count"]
     ):
         raise ValueError("Archive summary and exact checks must bind the current release and population")
     return records, paths
@@ -114,6 +119,11 @@ def add_revision_variables(variables, records):
     if any(not re.fullmatch(r"ATLAS_[A-Z0-9_]+", name) or name in variables for name in atlas):
         raise ValueError("Atlas manuscript values must use unique ATLAS_ tokens")
     variables.update(atlas)
+
+    integral = records["integral_invariants"]["manuscript_values"]
+    if any(not re.fullmatch(r"INTEGRAL_[A-Z0-9_]+", name) or name in variables for name in integral):
+        raise ValueError("Integral invariants must use unique INTEGRAL_ tokens")
+    variables.update(integral)
 
     exact = records["bicubic_exact"]["summary"]
     if (exact["points"] != exact["native_index_matches"]
@@ -204,6 +214,8 @@ def workflow_rows(root, software):
         ("Chern and polarized index audit", "scripts/chern_audit.py"),
         ("Archive weighting comparisons", "scripts/atlas_comparison.py"),
         ("Exact bicubic cohomology", "scripts/bicubic_exact.py"),
+        ("Integral divisor-lattice audit", "scripts/integral_invariants.py"),
+        ("Cover graphical abstract", "scripts/render_graphical_abstract.py"),
         ("Manuscript hydration", "scripts/z_generate_manuscript_variables.py"),
     ):
         if not (root / path).is_file():
@@ -291,9 +303,11 @@ def build_variables(root):
         "scripts/chern_audit.py",
         "scripts/atlas_comparison.py",
         "scripts/bicubic_exact.py",
+        "scripts/integral_invariants.py",
         "scripts/manuscript_analysis.py",
         "scripts/manuscript_variables.py",
         "scripts/render_figures.py",
+        "scripts/render_graphical_abstract.py",
         "scripts/z_generate_manuscript_variables.py",
         *paths.values(),
     ]

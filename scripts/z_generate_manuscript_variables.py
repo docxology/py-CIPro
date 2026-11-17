@@ -2,6 +2,7 @@
 """Prepare the py-CIPro manuscript for docxology/template Stage 03."""
 
 from dataclasses import dataclass
+from hashlib import sha256
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,7 @@ from infrastructure.rendering.manuscript_injection import (
 )
 
 from manuscript_variables import build_variables, validate_tokens
+from render_graphical_abstract import render_graphical_abstract
 
 
 @dataclass(frozen=True)
@@ -34,11 +36,13 @@ def figures_from_source(root, variables):
         "fig:chern_audit": "Hexagonal count plot of polarized Chern pairings and a scatter plot highlighting index extremes at one Hodge pair.",
         "fig:atlas_comparison": "Two Euler distribution steps, two ambient-factor profiles, and a signed decomposition of the change in archived favorability.",
         "fig:bicubic_exact": "Exact bicubic cohomology in a specified smooth member and its excess over the generic formula.",
+        "fig:integral_invariants": "Divisibility of cubic intersections and second Chern pairings on ambient divisor lattices, with breakdowns by Hodge pair.",
     }
     generated_by = {
         "fig:chern_audit": "scripts/chern_audit.py",
         "fig:atlas_comparison": "scripts/atlas_comparison.py",
         "fig:bicubic_exact": "scripts/bicubic_exact.py",
+        "fig:integral_invariants": "scripts/integral_invariants.py",
     }
     pattern = re.compile(
         r"^!\[(.+)\]\(\.\./output/figures/([a-z0-9-]+\.png)\)\{#(fig:[a-z0-9_]+)\b[^}]*\}",
@@ -66,6 +70,17 @@ def main():
         [root / "manuscript" / "figures" / spec.filename for spec in specs],
         schema_version="py-cipro-figures/v1",
     )
+    cover = root / "output" / "cover"
+    cover_pdf = cover / "graphical-abstract.pdf"
+    cover_png = cover / "graphical-abstract.png"
+    cover_record = render_graphical_abstract(root / "data", cover_pdf, cover_png)
+    evidence["cover"] = {
+        "inputs_sha256": cover_record["data_sha256"],
+        "size_inches": cover_record["size_inches"],
+        "outputs_sha256": {
+            path.name: sha256(path.read_bytes()).hexdigest() for path in (cover_pdf, cover_png)
+        },
+    }
     data = root / "output" / "data"
     data.mkdir(parents=True, exist_ok=True)
     for name, payload in (("manuscript_variables.json", variables), ("software_and_analysis.json", evidence)):

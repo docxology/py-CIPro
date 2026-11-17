@@ -4,7 +4,7 @@ Complete intersections in products of projective spaces encode equations, diviso
 
 Existing software addresses related domains. Larfors and Schneider used Python to study line-bundle cohomology on CICY threefolds of Picard number two, while CYTools specializes in Calabi–Yau hypersurfaces in toric varieties [@larfors-schneider-cohomology; @cytools]. py-CIPro centers the interface and artifacts of the released CIPro package so that computations, source records, and backend availability can be inspected together.
 
-The work addresses three questions about the inputs to a computation. [@sec:chern_audit] tests which geometric quantities are determined by a configuration matrix and a specified ambient polarization. [@sec:catalog] measures how different weights on the same archive change its summary statistics. [@sec:bundles] fixes a smooth bicubic equation and computes dimensions from its exact multiplication maps. These three studies tie each result to its input and establish which quantities can be compared across presentations, across weighting rules, or across smooth members of a family.
+The studies examine four choices that affect the interpretation of a result. [@sec:chern_audit] fixes a polarization and computes its degree and second Chern pairing directly from each configuration. [@sec:catalog] compares two ways of weighting the same archive. [@sec:integral_invariants] derives invariants that survive a change of divisor generators and tests which Hodge groups they distinguish. [@sec:bundles] fixes a smooth bicubic equation and computes dimensions from its exact multiplication maps. Together the studies specify which data to preserve when comparing presentations, integral lattices, archive summaries, or members of a family.
 
 | Selection | Execution and prerequisites |
 | --------- | ------------------------------------------------------------- |
@@ -13,7 +13,7 @@ The work addresses three questions about the inputs to a computation. [@sec:cher
 | Auto | Tries the native implementation and retries the original request through Wolfram on a native unsupported-domain outcome. Argument and computation errors propagate directly. |
 : Execution paths in py-CIPro. The browser starts in Python mode. Direct construction of `CIPro()` defaults to Wolfram. Set the library backend explicitly to reproduce a native run. {#tbl:backends}
 
-## Geometry associations and dispatch
+## From configuration data to a backend result
 
 A geometry is a mapping containing ambient dimensions and configuration degrees. Defining equations, line-bundle sums, and symmetry generators can be added as needed. In the original API, `CIProp` requests properties and their prerequisites, while `CIMod` constructs modified objects or operation-specific results. In Python these correspond to `property` and `modify`. The `call` and `call_result` methods address public functions by name. Full property results can include both the input and additional fields [@anderson-cipro; @cipro-release]. To recompute an invariant independently of the archive, construct a fresh association from `DimPs` and `Conf`. A populated association can reuse its precomputed keys.
 
@@ -26,7 +26,7 @@ The released catalog contains {{RELEASED_TOTAL}} entries across public functions
 {{METHOD_TABLE_ROWS}}
 : Method concordance measured from the pinned release and the native dispatch registries. One released name or dispatch key contributes one entry. The {{WOLFRAM_ONLY_TOTAL}} remaining entries use the Wolfram library. {#tbl:method_inventory}
 
-## Interactive use
+## Replaying an archive record and a method preset
 
 Start `py-cipro-dashboard` and open the loopback address printed by the launcher. Select archive record {{QUINTIC_RECORD_ID}} and compute `CIDim`, `CY`, and `Euler` from the configuration association. For this quintic the results are $3$, true, and ${{QUINTIC_EULER}}$. The record inspector identifies which values were computed and which were read from the archive. In the method lab, load and edit a preset, run the method, and inspect scalar, numeric matrix, or symbolic results. Symbolic arguments use a constrained JSON representation for symbols, indices, rationals, and arithmetic. The result identifies the actual backend, including when Auto resolves in Python. Procedural details and individual supported domains are in the repository's dashboard guide and Python/Wolfram concordance.
 

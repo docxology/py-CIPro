@@ -18,6 +18,7 @@ Wolfram kernel.
 | [`data/chern-audit.json`](../data/chern-audit.json) | Ambient second Chern pairings and polarized Hilbert data for the full archive |
 | [`data/atlas-comparison.json`](../data/atlas-comparison.json) | Exact presentation and Hodge-pair weights, Euler distributions, and decomposition of favorability shares |
 | [`data/bicubic-exact.json`](../data/bicubic-exact.json) | Equation coefficients, smoothness minors, and rational map ranks with exact cohomology in the finite charge grid |
+| [`data/integral-invariants.json`](../data/integral-invariants.json) | Record-level divisibilities of the cubic form and Chern functional on the ambient divisor lattice, grouped by Hodge numbers |
 | [`manuscript/references.bib`](../manuscript/references.bib) | Primary geometry, software, and dataset citations |
 
 Numbered definitions, propositions, lemmas, corollaries, examples,
@@ -54,7 +55,7 @@ the same interpreter for the analysis and manuscript.
 
 ## Recompute the results and figures
 
-Generate all seven figures and the typed result tables into an ignored
+Generate all eight figures, the graphical abstract, and the typed result tables into an ignored
 output directory. The comparisons should produce no output.
 
 ```sh
@@ -72,16 +73,20 @@ mkdir -p output/replay/data
   --figure output/replay/figures/atlas-comparison.png
 "$renderer_python" scripts/bicubic_exact.py --data output/replay/data/bicubic-exact.json \
   --figure output/replay/figures/bicubic-exact.png
-for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact; do
+"$renderer_python" scripts/integral_invariants.py --data output/replay/data/integral-invariants.json \
+  --figure output/replay/figures/integral-invariants.png
+for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact integral-invariants; do
   diff -u "data/$name.json" "output/replay/data/$name.json" || exit 1
 done
+"$renderer_python" scripts/render_graphical_abstract.py --data-dir output/replay/data \
+  --pdf output/replay/cover/graphical-abstract.pdf --png output/replay/cover/graphical-abstract.png
 ```
 
 The tracked PNGs are the manuscript's figure inputs. Run the same
 generators without output overrides to refresh them. Use
 `render_figures.py --suite --format pdf --figures-dir DIR` for vector
 exports of the four release-dashboard figures. Pass a PDF path as
-`--figure` to each additional generator to export the three manuscript
+`--figure` to each additional generator to export the remaining manuscript
 figures as vectors. The older `--summary` and `--output` options retain
 the single-atlas workflow.
 
@@ -89,7 +94,7 @@ the single-atlas workflow.
 
 From the template checkout, run the project producer with the renderer
 environment. It validates required placeholders, stages registered figures,
-writes the structured outputs, and calls the template's manuscript injection
+renders the graphical abstract, writes structured outputs, and calls the template's manuscript injection
 function. The private project lives outside the renderer's project custody
 root, so run the producer explicitly before Stage 03. Stage 03 consumes the
 hydrated result while retaining its pre-render and publication checks.
@@ -108,15 +113,16 @@ template names it from the checkout directory. Its validation and provenance
 reports are in `output/reports/`. The authored variables resolve into
 `output/data/manuscript_variables.json`, and
 `output/data/software_and_analysis.json` binds the machine-readable software
-record and the input and figure SHA-256 digests. Figure captions and alt text
-are registered in `output/figures/figure_registry.json`.
+record to the input, figure, and cover SHA-256 digests. Figure captions and
+alt text are registered in `output/figures/figure_registry.json`. The cover
+art is in `output/cover/`, and the template reads its image and description
+from `paper.cover` in `manuscript/config.yaml`.
 
 ## Refresh the dashboard's manuscript assets
 
-The installed dashboard includes the revised manuscript and seven
-interactive figures. To refresh the dashboard bundle after a verified render,
-collect these files in an export directory and generate `SHA256SUMS` there
-with relative paths.
+The v0.7.0 dashboard bundle contains its release manuscript and seven
+interactive figures. To reproduce that bundle, use a verified v0.7.0 export and
+generate `SHA256SUMS` there with relative paths.
 
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
 - `figures/` contains all seven named PDF exports and `figure_registry.json`.

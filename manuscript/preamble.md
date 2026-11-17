@@ -5,10 +5,8 @@
 \usepackage[section]{placeins}
 \usepackage{listings}
 \usepackage{fancyhdr}
+\usepackage[nottoc,notlof,notlot]{tocbibind}
 \lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible}
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{remark}[theorem]{Remark}
-\newtheorem{example}[theorem]{Example}
 
 \definecolor{ciprolink}{HTML}{156568}
 \definecolor{ciproquiet}{HTML}{3C596A}
@@ -22,7 +20,7 @@
 \fancyfoot[R]{\sffamily\footnotesize\color{ciproquiet}\thepage}
 \renewcommand{\headrulewidth}{0.25pt}
 \renewcommand{\footrulewidth}{0pt}
-\setcounter{tocdepth}{1}
+\setcounter{tocdepth}{2}
 \setcounter{topnumber}{3}
 \setcounter{bottomnumber}{2}
 \renewcommand{\topfraction}{0.90}
