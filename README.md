@@ -4,7 +4,7 @@ Python bindings for CIPro v1.0, the Wolfram Language package for complete inters
 
 ## Installation
 
-Install Python 3.10 or later and an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`.
+Install Python 3.10 or later and an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`. Some upstream cohomology routines use Wolfram’s [legacy Combinatorica package](https://reference.wolfram.com/language/Combinatorica/ref/Compositions.html), which must be available to the kernel.
 
 ```sh
 python -m pip install .

@@ -92,6 +92,17 @@ class ClientTests(unittest.TestCase):
         with self.assertRaises(KernelUnavailable):
             ci.start()
 
+    def test_evaluation_timeout_discards_the_owned_session(self):
+        kernel = RecordingKernel(response(True))
+        with patch("py_cipro._client.WolframLanguageSession", return_value=kernel):
+            with CIPro(evaluation_timeout=0) as ci:
+                root = Path(kernel.expressions[0].args[0].args[1])
+                with patch.object(kernel, "evaluate_wrap_future", return_value=Future()):
+                    with self.assertRaisesRegex(KernelUnavailable, "evaluation_timeout"):
+                        ci.Data("Cicy3", "Length")
+                self.assertTrue(kernel.terminated)
+                self.assertFalse(root.exists())
+
     def test_load_relocates_only_five_paths_and_keeps_release_members(self):
         archive = Path(__file__).resolve().parents[1] / "src/py_cipro/vendor/CIProPackage.zip"
         with TemporaryDirectory() as directory, ZipFile(archive) as original:

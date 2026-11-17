@@ -1,6 +1,7 @@
 """A persistent Wolfram kernel session for the upstream CIPro package."""
 
 import os
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -110,9 +111,10 @@ class CIPro:
                     kernel=self._kernel,
                     inputform_string_evaluation=False,
                     wxf_bytes_evaluation=False,
+                    STARTUP_TIMEOUT=self._startup_timeout,
                 )
                 session.start(timeout=self._startup_timeout)
-            except (OSError, TimeoutError, WolframKernelException) as exc:
+            except (OSError, FutureTimeoutError, WolframKernelException) as exc:
                 if session is not None:
                     session.terminate()
                 raise KernelUnavailable(
@@ -135,8 +137,10 @@ class CIPro:
                         wl.Sort(wl.Keys(_symbol("CIPro`Private`CIModMod"))),
                         wl.Sort(MODIFICATIONS),
                     ),
-                    *(wl.Greater(wl.Length(wl.DownValues(_symbol(f"CIPro`{name}"))), 0)
-                      for name in self.functions),
+                    *(
+                        wl.Greater(wl.Length(wl.DownValues(_symbol(f"CIPro`{name}"))), 0)
+                        for name in self.functions
+                    ),
                 )
                 expression = wl.CompoundExpression(
                     wl.Set(_symbol(APPLICATION_ROOT_SYMBOL), str(root)),
@@ -149,7 +153,7 @@ class CIPro:
                 self.startup = _read_evaluation(response)
                 if self.startup.value is not True:
                     raise EvaluationError(self.startup)
-            except TimeoutError as exc:
+            except FutureTimeoutError as exc:
                 self.close()
                 raise KernelUnavailable("Loading the CIPro package exceeded startup_timeout.") from exc
             except BaseException:
@@ -178,7 +182,7 @@ class CIPro:
                     timeout=self._evaluation_timeout,
                 )
                 return _read_evaluation(response)
-            except TimeoutError as exc:
+            except FutureTimeoutError as exc:
                 self.close()
                 raise KernelUnavailable(
                     "CIPro evaluation exceeded evaluation_timeout and its kernel was closed."
