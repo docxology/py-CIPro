@@ -1,0 +1,22 @@
+paper:
+  title: "py-CIPro"
+  subtitle: "A Python interface to CIPro for complete-intersection geometry"
+  date: "2026-11-17"
+authors:
+  - name: "py-CIPro contributors"
+keywords:
+  - complete intersections
+  - computational algebraic geometry
+  - Wolfram Language
+  - Python interoperability
+metadata:
+  language: en
+rendering:
+  section_breaks: false
+render:
+  formats:
+    pdf: true
+    html: false
+    slides: false
+    docx: false
+    epub: false
