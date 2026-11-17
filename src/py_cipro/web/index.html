@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the released CIPro catalogue of complete-intersection Calabi–Yau threefolds.">
+  <title>CIPro Explorer</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/explorer.js" type="module"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to data explorer</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#main"><span class="brand-icon" aria-hidden="true">C</span><span>CIPro <span class="brand-sub">Explorer</span></span></a>
+      <nav aria-label="Explorer sections"><a href="#explore">Explore</a><a href="#records">Catalogue</a><a href="#provenance">Sources</a></nav>
+      <a class="kernel-indicator" href="#kernel"><span id="kernel-dot" aria-hidden="true"></span><span id="kernel-status">Checking kernel</span></a>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="page-title">
+      <canvas id="hero-field" aria-hidden="true"></canvas>
+      <div class="hero-copy">
+        <p class="eyebrow" id="release-label">CIPro release catalogue</p>
+        <h1 id="page-title">Calabi–Yau<br>threefold explorer</h1>
+        <p>Explore the Hodge numbers, Euler characteristics and defining configurations of complete intersections in products of projective spaces.</p>
+        <div class="hero-actions">
+          <a class="button hero-button" href="#explore">Explore the data <span aria-hidden="true">↓</span></a>
+          <button class="button secondary-hero" id="share" type="button">Copy view link</button>
+          <span class="share-status" id="share-status" role="status"></span>
+        </div>
+      </div>
+      <dl class="hero-stats" aria-label="Entire catalogue summary">
+        <div><dt>Configurations</dt><dd id="total-records">—</dd></div>
+        <div><dt>Distinct Hodge pairs</dt><dd id="total-hodge">—</dd></div>
+        <div><dt>Euler range</dt><dd id="total-euler">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="workspace" id="explore" aria-labelledby="explore-title">
+      <div class="section-title"><div><h2 id="explore-title">Explore the catalogue</h2><p>Filter configurations, select a Hodge pair, or choose an Euler interval.</p></div><button id="reset" class="text-button" type="button" disabled>Clear filters</button></div>
+      <form class="filters" id="filters">
+        <label class="query-field">Find a configuration<input id="search" type="search" name="q" placeholder="Record ID or Hodge pair, e.g. 15,15" maxlength="48" autocomplete="off"></label>
+        <label>Favourability<select id="favourability" name="fav"><option value="all">All records</option><option value="yes">Favourable</option><option value="no">Non-favourable</option></select></label>
+        <label>Product structure<select id="product" name="product"><option value="all">All records</option><option value="yes">Products</option><option value="no">Non-products</option></select></label>
+      </form>
+      <div class="filter-summary"><p id="result-count" role="status">Loading catalogue…</p><div id="chips" class="chips" aria-label="Active plot filters"></div></div>
+      <p class="notice error" id="catalogue-error" role="alert" hidden></p>
+      <div class="charts">
+        <article class="card chart-card" aria-labelledby="scatter-title">
+          <div class="card-heading"><div><h3 id="scatter-title">Hodge numbers</h3><p>Position is the Hodge pair. A larger dot represents more records.</p></div><span class="chart-count" id="pair-count">— pairs</span></div>
+          <div class="plot-container">
+            <canvas id="scatter" role="img" aria-label="Hodge scatter plot, with h 1 1 on the horizontal axis and h 2 1 on the vertical axis." aria-describedby="scatter-access"></canvas>
+            <div id="scatter-tooltip" class="plot-tooltip" hidden></div>
+          </div>
+          <div class="chart-foot" id="scatter-access"><span><span class="legend-dot" aria-hidden="true"></span> Hodge pair</span><span><span class="legend-ring" aria-hidden="true"></span> Selected record</span><a href="#records">Explore as a table</a></div>
+          <p class="chart-note" id="hodge-sentinel" hidden></p>
+        </article>
+        <article class="card chart-card" aria-labelledby="euler-title">
+          <div class="card-heading"><div><h3 id="euler-title">Euler characteristic</h3><p>Choose a bar to filter by its inclusive integer interval.</p></div><span class="chart-count">Bin width 20</span></div>
+          <div id="histogram" class="histogram" role="group" aria-label="Euler characteristic intervals"></div>
+          <div class="histogram-axis" aria-hidden="true"><span id="first-bin">—</span><span>Euler characteristic</span><span id="last-bin">—</span></div>
+          <p class="chart-foot histogram-info" id="histogram-info" aria-live="polite">Focus a bar to see its interval and count.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="catalogue" id="records" aria-labelledby="records-title">
+      <article class="card table-card">
+        <div class="card-heading"><div><h2 id="records-title">Configurations</h2><p>Select a record to inspect its degree matrix and provenance.</p></div></div>
+        <div class="table-scroll" tabindex="0" aria-label="Configuration records">
+          <table><thead><tr>
+            <th scope="col" data-column="id" aria-sort="ascending"><button type="button" data-sort="id">ID <span aria-hidden="true">↑</span></button></th>
+            <th scope="col" data-column="h11" aria-sort="none"><button type="button" data-sort="h11">h<sup>1,1</sup> <span aria-hidden="true">↕</span></button></th>
+            <th scope="col" data-column="h21" aria-sort="none"><button type="button" data-sort="h21">h<sup>2,1</sup> <span aria-hidden="true">↕</span></button></th>
+            <th scope="col" data-column="euler" aria-sort="none"><button type="button" data-sort="euler">Euler <span aria-hidden="true">↕</span></button></th>
+            <th scope="col">Favourable</th>
+            <th scope="col">Product</th>
+          </tr></thead><tbody id="table-body"></tbody></table>
+        </div>
+        <div class="pagination"><span id="page-label">Loading…</span><div><button id="previous" type="button" class="square-button" aria-label="Previous page" disabled>‹</button><button id="next" type="button" class="square-button" aria-label="Next page" disabled>›</button></div></div>
+      </article>
+      <aside class="record-column" aria-label="Record and kernel details">
+        <article class="card record-card" aria-labelledby="record-title">
+          <div class="card-heading"><div><h2 id="record-title">Configuration</h2><p id="record-source">Choose a catalogue record</p></div><button id="export" type="button" class="text-button" disabled>Export JSON</button></div>
+          <div class="record-body" id="record-body"><p class="empty-state">The configuration matrix will appear here.</p></div>
+        </article>
+        <article class="card kernel-card" id="kernel" aria-labelledby="kernel-title">
+          <div class="card-heading"><div><h2 id="kernel-title">Live CIPro</h2><p>Evaluate supported properties for the selected configuration.</p></div></div>
+          <form class="kernel-form" id="compute-form">
+            <fieldset id="kernel-inputs" disabled>
+              <legend>CIProp keys</legend>
+              <div class="key-list"><label><input type="checkbox" name="property" value="CIDim" checked> CIDim</label><label><input type="checkbox" name="property" value="CY" checked> CY</label><label><input type="checkbox" name="property" value="Euler" checked> Euler</label></div>
+              <button class="button run-button" type="submit">Run in Wolfram kernel</button>
+            </fieldset>
+            <p class="notice" id="kernel-help" role="status">Checking live evaluation availability.</p>
+            <pre id="compute-output" aria-label="Wolfram kernel response" hidden></pre>
+          </form>
+        </article>
+      </aside>
+    </section>
+
+    <footer class="source-panel" id="provenance">
+      <div><h2>Data and methods</h2><p>The catalogue shows stored CIPro records. Hodge pairs group records with equal h<sup>1,1</sup> and h<sup>2,1</sup>, and a pair can occur in several configurations. For Calabi–Yau threefolds, χ = 2(h<sup>1,1</sup> − h<sup>2,1</sup>). Product rows retain their archived Euler values, and the JSON export preserves their stored Hodge placeholders.</p><p><a href="https://arxiv.org/abs/2606.27588">Anderson et al., arXiv:2606.27588</a> · <a href="https://github.com/JamesGray-Physics/CIPro/releases/tag/v1.0">CIPro v1.0 release</a></p></div>
+      <div class="source-digest"><strong>Release archive SHA-256</strong><code id="release-sha">—</code></div>
+    </footer>
+  </main>
+</body>
+</html>

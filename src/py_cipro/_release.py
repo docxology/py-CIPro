@@ -1,5 +1,6 @@
 """Load the exact GitHub release asset and relocate its application paths."""
 
+from contextlib import contextmanager
 from hashlib import sha256
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
@@ -11,8 +12,9 @@ RELEASE_SHA256 = "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd
 APPLICATION_ROOT_SYMBOL = "CIPro`Private`$PyCIProApplicationRoot"
 
 
-def prepare_application(root: Path) -> Path:
-    """Extract to a fresh session directory and return its relocated CIPro.m."""
+@contextmanager
+def open_release():
+    """Open the bundled ZIP after verifying its official release digest."""
     archive = files("py_cipro").joinpath("vendor", "CIProPackage.zip")
     with archive.open("rb") as stream:
         digest = sha256()
@@ -22,17 +24,23 @@ def prepare_application(root: Path) -> Path:
             raise ValueError("Bundled CIPro release does not match its recorded SHA-256")
         stream.seek(0)
         with ZipFile(stream) as package:
-            for entry in package.infolist():
-                relative = PurePosixPath(entry.filename)
-                if relative.is_absolute() or ".." in relative.parts or "\\" in entry.filename:
-                    raise ValueError(f"Invalid CIPro archive member {entry.filename!r}")
-                destination = root.joinpath(*relative.parts)
-                if entry.is_dir():
-                    destination.mkdir(parents=True, exist_ok=True)
-                else:
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    with package.open(entry) as source, destination.open("xb") as target:
-                        copyfileobj(source, target)
+            yield package
+
+
+def prepare_application(root: Path) -> Path:
+    """Extract to a fresh session directory and return its relocated CIPro.m."""
+    with open_release() as package:
+        for entry in package.infolist():
+            relative = PurePosixPath(entry.filename)
+            if relative.is_absolute() or ".." in relative.parts or "\\" in entry.filename:
+                raise ValueError(f"Invalid CIPro archive member {entry.filename!r}")
+            destination = root.joinpath(*relative.parts)
+            if entry.is_dir():
+                destination.mkdir(parents=True, exist_ok=True)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with package.open(entry) as source, destination.open("xb") as target:
+                    copyfileobj(source, target)
 
     source = root / "CIPro.m"
     original = source.read_bytes()

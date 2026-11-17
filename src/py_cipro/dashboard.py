@@ -1,0 +1,227 @@
+"""Serve the archived Cicy3 explorer and an opt-in local CIPro compute API."""
+
+import argparse
+from dataclasses import asdict
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib.resources import files
+import json
+import logging
+import re
+from threading import Lock
+from urllib.parse import urlsplit
+
+from ._client import CIPro, EvaluationError, KernelUnavailable
+from .catalog import get_catalog
+
+LOGGER = logging.getLogger(__name__)
+COMPUTE_PROPERTIES = frozenset({"CIDim", "CY", "Euler"})
+MAX_COMPUTE_BODY = 1024
+STATIC = {
+    "/": ("index.html", "text/html"),
+    "/styles.css": ("styles.css", "text/css"),
+    "/explorer.js": ("explorer.js", "text/javascript"),
+}
+_RECORD_QUERY = re.compile(r"id=([1-9][0-9]{0,3})\Z")
+
+
+class RequestError(Exception):
+    def __init__(self, status: HTTPStatus, message: str):
+        super().__init__(message)
+        self.status = status
+
+
+class DashboardServer(ThreadingHTTPServer):
+    def __init__(self, port: int, *, kernel: bool = False):
+        self.catalog = get_catalog()
+        self.catalog_body = _json_bytes({
+            "dataset": self.catalog.dataset,
+            "release": self.catalog.release,
+            "sha256": self.catalog.sha256,
+            "member_sha256": self.catalog.member_sha256,
+            "records": [record.summary() for record in self.catalog.records],
+        })
+        self.kernel_enabled = kernel
+        self.kernel = CIPro(startup_timeout=60, evaluation_timeout=30) if kernel else None
+        self.compute_lock = Lock()
+        super().__init__(("127.0.0.1", port), DashboardHandler)
+
+    def server_close(self):
+        super().server_close()
+        if self.kernel is not None:
+            with self.compute_lock:
+                self.kernel.close()
+
+    def compute(self, record_id: int, properties: list[str]) -> dict:
+        record = self.catalog.record(record_id)
+        if self.kernel is None:
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, "Live Wolfram evaluation is disabled on this server.")
+        if not self.compute_lock.acquire(blocking=False):
+            raise RequestError(HTTPStatus.CONFLICT, "Another kernel calculation is running. Try again after it finishes.")
+        try:
+            result = self.kernel.property(
+                {"Conf": record.configuration, "DimPs": record.ambient_dimensions},
+                properties,
+            )
+            values = {name: result[name] for name in properties}
+            for name, value in values.items():
+                expected = bool if name == "CY" else int
+                if type(value) is not expected:
+                    raise ValueError(f"Unexpected Wolfram value for {name}")
+        except KernelUnavailable as exc:
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
+        except (EvaluationError, TypeError, KeyError, ValueError) as exc:
+            LOGGER.warning("CIPro evaluation did not return the requested scalar properties: %s", exc)
+            raise RequestError(HTTPStatus.BAD_GATEWAY, "CIPro did not return the requested values. See the server log.") from exc
+        finally:
+            self.compute_lock.release()
+        return {"source": "CIPro v1.0 Wolfram kernel", "properties": values}
+
+
+def _json_bytes(value) -> bytes:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+class DashboardHandler(BaseHTTPRequestHandler):
+    def setup(self):
+        self.request.settimeout(10)
+        super().setup()
+
+    def do_GET(self):
+        try:
+            self._check_host()
+            target = self._target()
+            if target.path in STATIC:
+                self._static(target.path)
+            elif target.path == "/api/catalog" and not target.query:
+                self._reply(HTTPStatus.OK, self.server.catalog_body, "application/json")
+            elif target.path == "/api/record":
+                match = _RECORD_QUERY.fullmatch(target.query)
+                if match is None:
+                    raise RequestError(HTTPStatus.BAD_REQUEST, "Give one positive record ID in the query string.")
+                self._json(HTTPStatus.OK, asdict(self._record(int(match[1]))))
+            elif target.path == "/api/kernel" and not target.query:
+                self._json(HTTPStatus.OK, {"enabled": self.server.kernel_enabled})
+            else:
+                raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
+        except RequestError as exc:
+            self._json(exc.status, {"error": str(exc)})
+
+    def do_POST(self):
+        try:
+            self._check_host()
+            target = self._target()
+            if target.path != "/api/compute" or target.query:
+                raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
+            origin = self.headers.get("Origin")
+            if origin is not None and origin != f"http://{self.headers['Host']}":
+                raise RequestError(HTTPStatus.FORBIDDEN, "Compute requests must come from the dashboard origin.")
+            record_id, properties = self._read_compute_request()
+            self._record(record_id)
+            self._json(HTTPStatus.OK, self.server.compute(record_id, properties))
+        except RequestError as exc:
+            self._json(exc.status, {"error": str(exc)})
+
+    def _check_host(self):
+        port = self.server.server_port
+        if self.headers.get_all("Host") not in ([f"127.0.0.1:{port}"], [f"localhost:{port}"]):
+            raise RequestError(HTTPStatus.MISDIRECTED_REQUEST, "Use the dashboard's loopback address.")
+
+    def _target(self):
+        try:
+            target = urlsplit(self.path)
+            if not self.path.startswith("/") or target.scheme or target.netloc or target.fragment:
+                raise ValueError
+            return target
+        except ValueError as exc:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "Invalid request target.") from exc
+
+    def _record(self, number):
+        try:
+            return self.server.catalog.record(number)
+        except KeyError as exc:
+            raise RequestError(HTTPStatus.NOT_FOUND, f"Cicy3 record {number} was not found.") from exc
+
+    def _read_compute_request(self):
+        if self.headers.get_content_type() != "application/json":
+            raise RequestError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "Use Content-Type: application/json.")
+        lengths = self.headers.get_all("Content-Length", [])
+        if len(lengths) != 1 or not re.fullmatch(r"[0-9]{1,8}", lengths[0]) or self.headers.get("Transfer-Encoding"):
+            raise RequestError(HTTPStatus.LENGTH_REQUIRED, "Provide one valid Content-Length.")
+        length = int(lengths[0])
+        if length > MAX_COMPUTE_BODY:
+            raise RequestError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "Compute request exceeds 1024 bytes.")
+        try:
+            body = self.rfile.read(length)
+            if len(body) != length:
+                raise ValueError
+            payload = json.loads(body.decode("utf-8"), object_pairs_hook=_unique_fields)
+        except (ValueError, RecursionError) as exc:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "Invalid compute JSON.") from exc
+        except TimeoutError as exc:
+            raise RequestError(HTTPStatus.REQUEST_TIMEOUT, "Compute request body timed out.") from exc
+        if not isinstance(payload, dict) or set(payload) != {"record_id", "properties"}:
+            raise RequestError(HTTPStatus.BAD_REQUEST, "Supply record_id and properties only.")
+        record_id, properties = payload["record_id"], payload["properties"]
+        if type(record_id) is not int or not 1 <= record_id <= len(self.server.catalog.records):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "record_id must be an archived Cicy3 record (1–7890).")
+        if (
+            not isinstance(properties, list)
+            or not 1 <= len(properties) <= len(COMPUTE_PROPERTIES)
+            or any(not isinstance(name, str) or name not in COMPUTE_PROPERTIES for name in properties)
+            or len(properties) != len(set(properties))
+        ):
+            raise RequestError(HTTPStatus.BAD_REQUEST, "Select distinct properties from CIDim, CY and Euler.")
+        return record_id, properties
+
+    def _static(self, path):
+        filename, content_type = STATIC[path]
+        asset = files("py_cipro").joinpath("web", filename)
+        self._reply(HTTPStatus.OK, asset.read_bytes(), content_type)
+
+    def _json(self, status, value):
+        self._reply(status, _json_bytes(value), "application/json")
+
+    def _reply(self, status, body, content_type):
+        self.send_response(status)
+        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+            "img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+        )
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        pass
+
+
+def _unique_fields(pairs):
+    fields = dict(pairs)
+    if len(fields) != len(pairs):
+        raise ValueError("Duplicate compute fields")
+    return fields
+
+
+def main(argv: list[str] | None = None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=int, default=8765, help="loopback port, or 0 for an available port")
+    parser.add_argument("--kernel", action="store_true", help="permit CIPro evaluation through a local Wolfram kernel")
+    args = parser.parse_args(argv)
+    if not 0 <= args.port <= 65535:
+        parser.error("--port must be 0–65535")
+    with DashboardServer(args.port, kernel=args.kernel) as server:
+        print(f"CIPro dashboard: http://127.0.0.1:{server.server_port}/", flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

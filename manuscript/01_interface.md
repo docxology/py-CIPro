@@ -1,20 +1,28 @@
-# Interface
+# The computational interface
 
-The original CIPro package and its mathematical conventions are described by
-Anderson et al. [1]. CIPro represents a geometric object by a Wolfram Language
-association. Alongside a configuration matrix, an association can carry
-derived invariants, symmetry data, or charges specifying a sum of line bundles.
-A caller can pass such records between routines in the same kernel session.
+CIPro treats a complete intersection as a Wolfram Language association and
+resolves dependencies among requested properties. In the Python interface,
+`CIPro.property(geometry, keys)` invokes the upstream `CIProp` dispatcher,
+`modify` invokes `CIMod`, and `call` addresses a public symbol by its precise
+name. Dictionaries represent associations, lists represent Wolfram lists,
+and keyword arguments travel as string-keyed options. The Wolfram Client
+Library transports expressions in WXF, a binary format that maintains
+expression heads, symbols, and exact rationals. Keep those objects intact
+when passing a result to another routine. [@anderson-cipro; @cipro-release; @wolfram-client]
 
-The Python entry point `call` dispatches by exact CIPro export name. The
-`property` and `modify` entry points route named operations through CIPro's
-`CIProp` and `CIMod` dispatchers. CIPro resolves prerequisite properties,
-interprets options, and evaluates the selected routines in the kernel. This
-boundary covers data queries, configuration and intersection calculations,
-characteristic classes, symmetry operations, and line-bundle computations.
+The roles of the operators matter. `CIProp` can extend a geometry with
+invariants, characteristic classes, and intermediate quantities. `CIMod`
+addresses derived constructions such as normalization, direct sums, and
+exterior powers, with an operation-specific result. A record obtained from
+the archived catalog can carry precomputed values. A check that aims to
+recompute a property should supply only the defining input, such as
+`DimPs` and `Conf`, because CIPro can reuse existing keys. For help output
+and message-sensitive investigations, use `call_result` to preserve the
+kernel diagnostics. [@anderson-cipro; @cipro-release]
 
-The Wolfram Client Library transmits expressions in Wolfram Expression Format
-(WXF). Wolfram heads and symbols in symbolic results carry mathematical
-information. Preserve those expressions when returning them to CIPro. Interactive
-help, notebook display, and front-end actions can have different behavior in a
-headless kernel from ordinary computation.
+A local kernel keeps state, including data caches and options, for the life of
+the session. Wolfram Cloud’s authenticated Python API evaluates each request
+in a fresh cloud kernel. A cloud implementation would need to load the pinned
+package and its dependencies from provisioned storage in each cold evaluation or explicitly deploy a
+fixed, protected Wolfram API. Local paths, binary data, and notebook features
+require compatibility checks in the destination environment. Cloud deployment remains unverified. [@wolfram-client; @wolfram-api]

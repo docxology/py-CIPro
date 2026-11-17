@@ -1,2 +1,4 @@
 recursive-include docs *.md
-recursive-include manuscript *.md *.yaml
+recursive-include manuscript *.md *.yaml *.bib *.png
+recursive-include data *.json
+include scripts/check_intersections.py scripts/render_figures.py

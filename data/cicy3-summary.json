@@ -1,0 +1,57 @@
+{
+  "dataset": "Cicy3",
+  "release": "v1.0",
+  "archive_sha256": "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53",
+  "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
+  "record_count": 7890,
+  "hodge_pair_count": 266,
+  "non_product_hodge_pair_count": 265,
+  "most_frequent_hodge_pairs": [
+    {
+      "h11": 9,
+      "h21": 21,
+      "record_count": 354
+    },
+    {
+      "h11": 10,
+      "h21": 20,
+      "record_count": 292
+    }
+  ],
+  "product_count": 22,
+  "product_hodge_pairs": [
+    [
+      0,
+      0
+    ]
+  ],
+  "favourable_count": 4874,
+  "euler": {
+    "min": -200,
+    "max": 0,
+    "median": -40.0,
+    "mode": -32,
+    "mode_count": 613,
+    "value_count": 70,
+    "zero_count": 52,
+    "hodge_identity_matches": 7890
+  },
+  "fixtures": {
+    "bicubic": {
+      "id": 7884,
+      "h11": 2,
+      "h21": 83,
+      "euler": -162,
+      "favourable": true,
+      "product": false
+    },
+    "quintic": {
+      "id": 7890,
+      "h11": 1,
+      "h21": 101,
+      "euler": -200,
+      "favourable": true,
+      "product": false
+    }
+  }
+}

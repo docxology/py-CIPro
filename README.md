@@ -11,6 +11,16 @@ python -m pip install .
 export WOLFRAM_KERNEL='/path/to/WolframKernel'
 ```
 
+## Explore the released threefolds
+
+```sh
+py-cipro-dashboard
+```
+
+Open [the local dashboard](http://127.0.0.1:8765/). It reads the verified `Cicy3` member and links the Hodge plot, Euler distribution, record table, and configuration-matrix inspector across all 7,890 archived rows. Filter or select a point to see its contributing records. The 22 archived product rows use `(0, 0)` placeholders for their Hodge pair. The explorer identifies those rows separately. The archive view runs offline.
+
+With an activated kernel, `py-cipro-dashboard --kernel` enables live recalculation of `CIDim`, `CY`, and `Euler` for a selected archived configuration. The service binds to loopback and exposes the same operations as a small JSON API. See the [research guide](docs/research.md) for the source bindings, interpretation, and reference geometries. See the [Wolfram API guide](docs/wolfram-api.md) for the local, SSH, and Wolfram Cloud workflows.
+
 ## Use
 
 ```python
@@ -46,7 +56,8 @@ For the upstream package, cite Lara B. Anderson, Andrei Constantin, James Gray, 
 
 ```sh
 python -m unittest discover -s tests -v
+WOLFRAM_KERNEL='/path/to/WolframKernel' py-cipro-qualify > native-qualification.json
 WOLFRAM_KERNEL='/path/to/WolframKernel' python -m unittest discover -s tests -p 'test_live.py' -v
 ```
 
-The first command checks archive contents, source-to-catalog coverage and the Python-to-WXF boundary. The live suite runs when `WOLFRAM_KERNEL` is set and checks CIPro computations and dataset access in the activated kernel. Binary datasets use Wolfram `DumpSave` and require a compatible kernel/system.
+The offline suite checks archive integrity and scientific fixtures, source-to-catalog coverage, the loopback API, and the Python-to-WXF boundary. The qualification command emits a JSON receipt with the release digest, kernel version, system ID, and results for the quintic, bicubic, tetraquadric, and native dataset count. The live suite runs when `WOLFRAM_KERNEL` is set and checks CIPro computations and dataset access in the activated kernel. Binary datasets use Wolfram `DumpSave` and require a compatible kernel/system.

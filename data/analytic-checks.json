@@ -1,0 +1,145 @@
+{
+  "method": "Ambient truncated integer polynomial ring, adjunction and weak Lefschetz",
+  "dataset": "Cicy3",
+  "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
+  "fixtures": {
+    "quintic": {
+      "record": 7890,
+      "ambient_dimensions": [
+        4
+      ],
+      "configuration": [
+        [
+          5
+        ]
+      ],
+      "h11": 1,
+      "h21": 101,
+      "euler": -200,
+      "c2": [
+        {
+          "exponents": [
+            2
+          ],
+          "value": 10
+        }
+      ],
+      "c3": [
+        {
+          "exponents": [
+            3
+          ],
+          "value": -40
+        }
+      ],
+      "c2_against_hyperplanes": [
+        50
+      ],
+      "triple_intersections": [
+        {
+          "indices": [
+            1,
+            1,
+            1
+          ],
+          "integral": 5
+        }
+      ]
+    },
+    "bicubic": {
+      "record": 7884,
+      "ambient_dimensions": [
+        2,
+        2
+      ],
+      "configuration": [
+        [
+          3
+        ],
+        [
+          3
+        ]
+      ],
+      "h11": 2,
+      "h21": 83,
+      "euler": -162,
+      "c2": [
+        {
+          "exponents": [
+            0,
+            2
+          ],
+          "value": 3
+        },
+        {
+          "exponents": [
+            1,
+            1
+          ],
+          "value": 9
+        },
+        {
+          "exponents": [
+            2,
+            0
+          ],
+          "value": 3
+        }
+      ],
+      "c3": [
+        {
+          "exponents": [
+            1,
+            2
+          ],
+          "value": -27
+        },
+        {
+          "exponents": [
+            2,
+            1
+          ],
+          "value": -27
+        }
+      ],
+      "c2_against_hyperplanes": [
+        36,
+        36
+      ],
+      "triple_intersections": [
+        {
+          "indices": [
+            1,
+            1,
+            1
+          ],
+          "integral": 0
+        },
+        {
+          "indices": [
+            1,
+            1,
+            2
+          ],
+          "integral": 3
+        },
+        {
+          "indices": [
+            1,
+            2,
+            2
+          ],
+          "integral": 3
+        },
+        {
+          "indices": [
+            2,
+            2,
+            2
+          ],
+          "integral": 0
+        }
+      ]
+    }
+  }
+}

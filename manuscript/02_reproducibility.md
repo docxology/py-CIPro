@@ -1,23 +1,55 @@
-# Reproducing a calculation
+# Geometry and independent checks
 
-Use the official CIPro 1.0 release [2]. The repository records the upstream
-commit and SHA-256 of the release archive. The archive supplies the package
-source, auxiliary material, data, and examples together. A computational run
-also requires an activated Wolfram kernel with the upstream prerequisites
-available.
+Let $A=\prod_{i=1}^{m}\mathbb{P}^{n_i}$, with hyperplane classes $H_i$. A
+configuration $Q=(q_{ia})$ gives the degrees of $r$ polynomials, one column per
+polynomial. Write $D_a=\sum_i q_{ia}H_i$ for the divisor of the $a$th equation.
+For a smooth intersection of the expected codimension, the normal sequence
+and adjunction give
 
-Record the release checksum, the Python wrapper revision, the Wolfram kernel
-version, and each CIPro function or dispatcher key together with its arguments
-and options. Record the dataset name and record index for dataset-backed
-results. For a compact end-to-end check on the quintic in projective
-four-space, pass `{"DimPs": [4], "Conf": [[5]]}` and `["CIDim", "Euler"]` to `property`.
-The expected complex dimension is 3 and the expected Euler characteristic is
-$-200$. The tangent Chern class is $(1+H)^5/(1+5H)$, where $H$ is the hyperplane
-class. Its third component is $-40H^3$ and the integral of $H^3$ is 5.
-A property check on that example exercises a small part of the
-interface. Dataset queries, symmetry routines, and line-bundle computations
-need their own fixtures and kernel runs.
+$$
+\dim X=\sum_i n_i-r, \qquad
+c(TX)=\left.
+\frac{\prod_i(1+H_i)^{n_i+1}}{\prod_a(1+D_a)}
+\right|_X .
+$$
 
-This manuscript contains an interface description and verification procedure.
-The reference values above are mathematical checks for a future run. Rendering
-this document verifies the manuscript build.
+The condition $\sum_a q_{ia}=n_i+1$ in each row makes the canonical bundle
+trivial by adjunction. That row check carries no smoothness information
+about a chosen set of equations. To integrate a top-degree class $p$ built
+from the $H_i$, multiply it by $\prod_a D_a$ in the ambient cohomology ring,
+where $H_i^{n_i+1}=0$, and take the coefficient of $\prod_i H_i^{n_i}$.
+The independent script `scripts/check_intersections.py` implements this calculation in a truncated integer polynomial ring and compares the analytical Hodge and Euler values to the archive. [@anderson-cipro; @candelas-cicy; @green-hubsch]
+
+## Quintic and bicubic fixtures
+
+**Quintic.** Use `{"DimPs": [4], "Conf": [[5]]}` for a degree-five
+hypersurface in $\mathbb{P}^{4}$. The degree-three term of
+$(1+H)^5/(1+5H)$ is $-40H^3$, and $\int_XH^3=5$. It follows that
+$\int_Xc_3=-200$ and $\int_Xc_2H=50$. Lefschetz gives $h^{1,1}=1$ and
+the Euler relation gives $h^{2,1}=101$. The released Cicy3 record is 7890.
+
+**Bicubic.** Use `{"DimPs": [2, 2], "Conf": [[3], [3]]}` for a
+hypersurface in $\mathbb{P}^{2}\times\mathbb{P}^{2}$. The nonzero
+ambient-induced triple integrals are
+$\int_X H_1^2H_2=\int_X H_1H_2^2=3$. The Chern classes in this basis are
+
+$$
+\begin{aligned}
+c_2(TX)&=3H_1^2+9H_1H_2+3H_2^2,\\
+c_3(TX)&=-27(H_1^2H_2+H_1H_2^2).
+\end{aligned}
+$$
+
+This yields $\chi=-162$ and $\int_X c_2H_1=\int_Xc_2H_2=36$. The
+hypersurface is ample, so Lefschetz gives $h^{1,1}=2$, and
+$h^{2,1}=83$ follows. The released record is 7884. For a smooth bicubic
+on which a group of order nine acts freely, the covering relation would
+give $\chi(X/G)=-18$. This implication requires a free action on the
+chosen variety. A group order or an invariant polynomial alone does not
+establish freeness. [@anderson-cipro; @braun-quotients; @constantin-quotients]
+
+For geometry with $\operatorname{SU}(3)$ holonomy, the Hodge symmetries and
+the standard Calabi–Yau threefold vanishings imply
+$\chi=2(h^{1,1}-h^{2,1})$. The catalog stores sentinel Hodge values for
+products, so numerical agreement with this identity on product rows
+does not validate their actual Hodge diamonds.

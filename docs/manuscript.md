@@ -6,14 +6,33 @@ commit `9bebe79195b8f6be4a3da02838fcd296b3012a56`. The template's
 [private project workflow](https://github.com/docxology/template/blob/v5.0.2/docs/maintenance/private-projects-repo.md)
 links a private project into a local renderer checkout. PDF rendering needs
 Python 3.14 or later, uv, Pandoc, and XeLaTeX. A Wolfram kernel is needed for
-CIPro calculations.
+CIPro calculations. The manuscript and atlas figure can be reproduced offline from the bundled release.
 
 From the py-CIPro checkout, prepare a dedicated template checkout and a local
 sidecar for this project. The provenance check reads indexed project sources.
-Commit or stage new manuscript files before running it.
+Commit or stage the manuscript, figure and figure generator before running it.
+The template expects figure inputs in `output/figures/`, so the build below
+stages a copy of the checked-in figure there.
+
+To regenerate the figure from the validated `Cicy3` data, install py-CIPro and
+the plotting dependency into your project environment, then run the generator.
+
+```sh
+python -m pip install . 'matplotlib==3.11.2'
+python scripts/render_figures.py --summary data/cicy3-summary.json
+python scripts/check_intersections.py
+python scripts/render_figures.py --output output/figures/cicy3-atlas.pdf
+```
+
+The default output is the 300 dpi `manuscript/figures/cicy3-atlas.png` used in
+the manuscript. The optional PDF is a standalone vector figure. The JSON summary binds the
+plotted release digest and the manuscript counts to the same parsed records. The independent analytic check emits
+`data/analytic-checks.json` using exact integer polynomial arithmetic.
 
 ```sh
 py_cipro_root="$(pwd -P)"
+mkdir -p output/figures
+cp manuscript/figures/cicy3-atlas.png output/figures/cicy3-atlas.png
 project_name="$(basename "$py_cipro_root")"
 render_root="$(mktemp -d "${TMPDIR:-/tmp}/py-cipro-render.XXXXXX")"
 git clone --branch v5.0.2 --single-branch --depth 1 \
