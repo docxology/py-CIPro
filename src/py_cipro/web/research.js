@@ -208,6 +208,10 @@ function recordAction(panel, select, lookup, openRecords, singular = false) {
   }
   actions.append(button);
   panel.details.append(status);
+  return () => {
+    status.textContent = "";
+    status.classList.remove("error");
+  };
 }
 
 function atlas(root, data, openRecords) {

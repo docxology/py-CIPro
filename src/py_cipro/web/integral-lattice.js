@@ -109,6 +109,8 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
   let selectedCell = null;
   let selectedRecord = null;
   let clearResult;
+  let clearCohortStatus;
+  let clearRecordStatus;
   const chartCells = new Map();
   const describeCell = row => `g₃ = ${row.cubic_content} · g₂ = ${row.chern_content} · ${count.format(row.count)} ${row.count === 1 ? "record" : "records"}`;
   const hodgeGroups = new Map(data.hodge.map(row => [row.hodge.join(","), row]));
@@ -164,11 +166,13 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
       button.setAttribute("aria-pressed", String(id === source.id));
     }
     clearResult?.();
+    clearRecordStatus?.();
   }
 
   function selectCell(newKey, preferredId) {
     selectedCell = selectedCells.find(row => key(row) === newKey) || selectedCells[0];
     cell.select.value = key(selectedCell);
+    clearCohortStatus?.();
     cellReport.textContent = `${describeCell(selectedCell)} in the selected scope.`;
     for (const [choice, mark] of chartCells) {
       const selected = choice === key(selectedCell);
@@ -237,8 +241,8 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
       `Hyperplane indices · (${run.result.hyperplane_indices.join(", ")})`,
       run.source,
     ].filter(Boolean));
-  recordAction(census, () => selectedCell, cellQuery, openRecords);
-  recordAction(inspection, () => selectedRecord, row => ({
+  clearCohortStatus = recordAction(census, () => selectedCell, cellQuery, openRecords);
+  clearRecordStatus = recordAction(inspection, () => selectedRecord, row => ({
     query: { figure: "integral-invariants", record_id: row.id }, title: `Integral lattice · record #${row.id}`,
   }), openRecords, true);
 

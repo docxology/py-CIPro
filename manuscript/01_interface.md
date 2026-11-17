@@ -32,20 +32,20 @@ The notation in [@tbl:geometry_notation] follows the mathematical inputs. [@tbl:
 
 | Notation | Mathematical meaning and input |
 | --- | --- |
-| $A$, $X$, $(n_i)$, $Q=(q_{ia})$ | Ambient product, complete intersection, factor dimensions, and configuration matrix. Rows index factors and columns index equations. See [@prop:adjunction]. |
+| $A$, $X$, $(n_i)$, $Q=(q_{ia})$ | Ambient product, complete intersection, factor dimensions, and configuration matrix. Rows index factors and columns index equations. See [@eq:adjunction]. |
 | $H_i$, $D_a$, $F$ | Restricted hyperplane class, ambient degree class of equation $a$, and a specified defining polynomial when there is one equation. |
-| $\mu$, $d_{ijk}$, $\lambda$, $T_i$ | Trilinear cup product, its evaluations on the $H_i$, second Chern functional, and its evaluations on the $H_i$. See [@def:integral_content]. |
-| $\rho_X$, $L_X$ | First Pontryagin evaluation on the full integral second cohomology. For $c_1(TX)=0$, $\rho_X=-2\lambda$ on the ambient lattice. See [@prop:integral_topological_comparison]. |
-| $L$, $S$, $(g_3,g_2)$ | Integral image of ambient classes, its saturation in the free second cohomology, and the cubic and second Chern content. See [@prop:integral_content_saturation]. |
+| $\mu$, $d_{ijk}$, $\lambda$, $T_i$ | Trilinear cup product, its evaluations on the $H_i$, second Chern functional, and its evaluations on the $H_i$. See [@eq:integral_content_ideals]. |
+| $\rho_X$, $L_X$ | First Pontryagin evaluation on the full integral second cohomology. For $c_1(TX)=0$, $\rho_X=-2\lambda$ on the ambient lattice. See [@eq:integral_topological_data]. |
+| $L$, $S$, $(g_3,g_2)$ | Integral image of ambient classes, its saturation in the free second cohomology, and the cubic and second Chern content. See [@eq:integral_content_saturation]. |
 | $\mathcal L$, $\ell$, $V$, $T$ | All-ones line bundle, its first Chern class, its cubic degree, and its second Chern pairing. See [@eq:polarized_pairings]. |
 | $L_{\mathbf{k}}$, $h^q$, $\chi(X,L_{\mathbf{k}})$ | Ambient line bundle restricted to $X$, its degree-$q$ cohomology dimension, and its index. In the API one charge vector is one column of `LBS`. See [@eq:line_index]. |
-| $M_{(a,b)}(F)$, $r_2$, $\delta(a,b)$ | Middle Koszul multiplication map at the bicubic charge, its rank, and the paired dimension excess over the generic member. See [@prop:bicubic_koszul_ranks] and [@eq:bicubic_paired_excess]. |
+| $M_{(a,b)}(F)$, $r_2$, $\delta(a,b)$ | Middle Koszul multiplication map at the bicubic charge, its rank, and the paired dimension excess over the generic member. See [@eq:bicubic_dimension_from_rank] and [@eq:bicubic_paired_excess]. |
 : Geometric notation used in the computations. The CIPro key `Mu` gives the integrating polynomial $\prod_a D_a$. The trilinear $\mu$ in this manuscript evaluates three divisor classes. {#tbl:geometry_notation}
 
 | Quantity or formula | Released CIPro call | Python route and evidence |
 | --- | --- | --- |
 | Configuration and Hodge pair | `Data["Cicy3", id]` | `ci.Data("Cicy3", id)` reads the released fields. The atlas uses the original row IDs and filters in [@sec:catalog]. |
-| Dimension and canonical class, [@prop:adjunction] | `CIProp[g, {"CIDim", "CY", "K"}]` | `ci.property` with the same keys. Use `DimPs` and `Conf` as defining inputs. |
+| Dimension and canonical class, [@eq:adjunction] | `CIProp[g, {"CIDim", "CY", "K"}]` | `ci.property` with the same keys. Use `DimPs` and `Conf` as defining inputs. |
 | Chern classes and Euler, [@eq:archive_euler] and [@eq:quadratic_chern] | `CIProp[g, {"CPoly", "C", "Euler"}]` | `ci.property` with the same keys. The independent ring audit compares the stored Euler scalar and ordered second Chern pairings. |
 | Intersection tensor and content, [@eq:integral_content_gcd] | `CIProp[g, "ISec"]` supplies the tensor | `ci.property(g, "ISec")` gives the tensor. The content audit pairs it with the Chern evaluations via a separate integer calculation. |
 | Multigraded quotient series, [@eq:hilbert] | `HilbertSeries[g]` | `ci.HilbertSeries(g)` evaluates the rational expression and supports documented coefficient requests. |
