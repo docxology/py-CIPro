@@ -15,6 +15,9 @@ Wolfram kernel.
 | [`data/cicy3-summary.json`](../data/cicy3-summary.json) | Release digests and whole-catalog summary |
 | [`data/analytic-checks.json`](../data/analytic-checks.json) | Independent integer recomputation of the Euler characteristic of every configuration and two exact Chern and intersection fixtures |
 | [`data/manuscript-analysis.json`](../data/manuscript-analysis.json) | Plot data, finite-catalog denominators, native cohomology charge-by-charge outcomes, and independent checks |
+| [`data/chern-audit.json`](../data/chern-audit.json) | Ambient second Chern pairings and polarized Hilbert data for the full archive |
+| [`data/atlas-comparison.json`](../data/atlas-comparison.json) | Exact presentation and Hodge-pair weights, Euler distributions, and decomposition of favorability shares |
+| [`data/bicubic-exact.json`](../data/bicubic-exact.json) | Equation coefficients, smoothness minors, and rational map ranks with exact cohomology in the finite charge grid |
 | [`manuscript/references.bib`](../manuscript/references.bib) | Primary geometry, software, and dataset citations |
 
 Numbered definitions, propositions, lemmas, corollaries, examples,
@@ -51,8 +54,8 @@ the same interpreter for the analysis and manuscript.
 
 ## Recompute the results and figures
 
-Generate the four figures and the typed result tables into an ignored
-output directory. The first two `diff` calls should produce no output.
+Generate all seven figures and the typed result tables into an ignored
+output directory. The comparisons should produce no output.
 
 ```sh
 renderer_python="$(pwd -P)/.venv/bin/python"
@@ -63,15 +66,23 @@ mkdir -p output/replay/data
   --output output/replay/data/analytic-checks.json
 "$renderer_python" scripts/render_figures.py --suite \
   --figures-dir output/replay/figures --data-dir output/replay/data
-diff -u data/analytic-checks.json output/replay/data/analytic-checks.json
-diff -u data/manuscript-analysis.json output/replay/data/manuscript-analysis.json
+"$renderer_python" scripts/chern_audit.py --data output/replay/data/chern-audit.json \
+  --figure output/replay/figures/chern-audit.png
+"$renderer_python" scripts/atlas_comparison.py --data output/replay/data/atlas-comparison.json \
+  --figure output/replay/figures/atlas-comparison.png
+"$renderer_python" scripts/bicubic_exact.py --data output/replay/data/bicubic-exact.json \
+  --figure output/replay/figures/bicubic-exact.png
+for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact; do
+  diff -u "data/$name.json" "output/replay/data/$name.json" || exit 1
+done
 ```
 
-The tracked PNGs are the manuscript's figure inputs. To regenerate an
-updated figure set, run `scripts/render_figures.py --suite` without the
-output overrides and review the data alongside the plots. Pass
-`--format pdf` and a separate `--figures-dir` to export the same figures
-as standalone vectors. The older `--summary` and `--output` options retain
+The tracked PNGs are the manuscript's figure inputs. Run the same
+generators without output overrides to refresh them. Use
+`render_figures.py --suite --format pdf --figures-dir DIR` for vector
+exports of the four release-dashboard figures. Pass a PDF path as
+`--figure` to each additional generator to export the three manuscript
+figures as vectors. The older `--summary` and `--output` options retain
 the single-atlas workflow.
 
 ## Hydrate, render and validate
@@ -102,10 +113,11 @@ are registered in `output/figures/figure_registry.json`.
 
 ## Refresh the dashboard's manuscript assets
 
-The installed dashboard includes the validated manuscript PDF, four
-standalone vector figures, and the data behind the plots. To refresh the
-bundle after a verified render, collect these files in an export directory
-and generate `SHA256SUMS` there with relative paths.
+The installed dashboard includes the manuscript and four interactive
+figures from its release. The expanded manuscript adds three standalone
+analyses. To refresh the dashboard bundle after a verified render, collect
+these files in an export directory and generate `SHA256SUMS` there with
+relative paths.
 
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
 - `figures/` contains the four named PDF exports and `figure_registry.json`.

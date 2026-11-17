@@ -16,10 +16,16 @@ class ManuscriptTests(unittest.TestCase):
     def setUpClass(cls):
         with patch.object(sys, "path", [str(ROOT / "scripts"), *sys.path]):
             import check_intersections
+            import atlas_comparison
+            import bicubic_exact
+            import chern_audit
             import manuscript_analysis
             import manuscript_variables
 
         cls.intersections = check_intersections
+        cls.atlas = atlas_comparison
+        cls.bicubic = bicubic_exact
+        cls.chern = chern_audit
         cls.analysis = manuscript_analysis
         cls.variables = manuscript_variables
 
@@ -32,6 +38,18 @@ class ManuscriptTests(unittest.TestCase):
             self.assertEqual(json.loads(json.dumps(computed)), fixture)
         expected = json.loads((ROOT / "data" / "manuscript-analysis.json").read_text())
         self.assertEqual(json.loads(json.dumps(self.analysis.manuscript_analysis())), expected)
+
+    def test_revision_analyses_match_recomputation(self):
+        catalog = self.intersections.get_catalog()
+        data = ROOT / "data"
+        for path, result in (
+            ("chern-audit.json", self.chern.compute_chern_audit()),
+            ("atlas-comparison.json", self.atlas.atlas_comparison(catalog)),
+            ("bicubic-exact.json", self.bicubic.analysis(data / "manuscript-analysis.json")),
+        ):
+            with self.subTest(path=path):
+                expected = json.loads((data / path).read_text(encoding="utf-8"))
+                self.assertEqual(json.loads(json.dumps(result)), expected)
 
     def test_all_authored_tokens_have_generated_values(self):
         with patch.object(self.variables, "version", return_value="test-renderer"):

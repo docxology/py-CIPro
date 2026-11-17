@@ -44,6 +44,9 @@ def package_research(export, destination, template_commit, manuscript_title, man
     if assets["manuscript-analysis.json"] != canonical.read_bytes():
         raise ValueError("The exported analysis differs from the source data")
     registry = json.loads(checked("figures/figure_registry.json"))
+    figure_metadata = {Path(item["filename"]).stem: item for item in registry["figures"]}
+    if not set(FIGURE_IDS) <= figure_metadata.keys():
+        raise ValueError("The export is missing a dashboard figure registration")
     upstream = source["software"]["upstream"]
     provenance = {
         "schema_version": 1,
@@ -56,11 +59,11 @@ def package_research(export, destination, template_commit, manuscript_title, man
         "dataset_sha256": upstream["member_sha256"],
         "assets_sha256": {name: sha256(content).hexdigest() for name, content in assets.items()},
         "figures": {
-            Path(item["filename"]).stem: {
-                "caption": item["caption"],
-                "alt_text": item["metadata"]["alt_text"],
+            figure: {
+                "caption": figure_metadata[figure]["caption"],
+                "alt_text": figure_metadata[figure]["metadata"]["alt_text"],
             }
-            for item in registry["figures"]
+            for figure in FIGURE_IDS
         },
     }
     destination.mkdir(parents=True, exist_ok=True)

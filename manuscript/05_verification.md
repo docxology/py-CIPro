@@ -10,7 +10,9 @@ The evidence in earlier sections uses different tests because the questions have
 | Archive census | Stored IDs, fields, shapes, and flags | Record-level frequency, consistency, and population checks. |
 | Exact geometric fixtures | Two independently characterized regular hypersurfaces | Chern contractions and threefold Hodge/Euler comparisons with the released fields. |
 | Euler recomputation | Every released matrix | Exact integration of the cubic in [@eq:archive_euler] gives {{CICY3_TRUNCATED_RING_EULER_MATCHES}} scalar Euler matches. |
-| Exact charge sweeps | Quintic charges and a bounded two-charge bicubic grid | Independent quintic dimensions, Serre-dual agreement on the supported lattice, and exact index throughout both domains. |
+| Quadratic Chern audit | Every released matrix and its ordered ambient generators | {{CHERN_AMBIENT_PAIRINGS}} second Chern pairings recovered independently from [@eq:quadratic_chern]. |
+| Weighting sensitivity | All {{CICY3_NONPRODUCT_ROWS}} non-product records with the original flag encodings | Exact empirical distributions and symmetric decomposition under the two weights. |
+| Exact charge sweeps | Quintic charges and a bounded bicubic grid with an explicit smooth equation | Independent quintic dimensions, rational map ranks on the specified bicubic, and exact index throughout both domains. |
 | Local HTTP dispatch | One preset for each of the {{NATIVE_TOTAL}} native registry entries | Browser API inputs, Python execution and typed results for every preset, with separate checks for Auto routing. |
 : Verification layers in this release. The tests give evidence for their stated fixtures, populations, and interfaces. Live native-versus-Wolfram comparisons require an activated kernel. {#tbl:verification}
 
@@ -29,6 +31,6 @@ The package is **{{PACKAGE_NAME}} {{PACKAGE_VERSION}}**, with Python requirement
 
 For a calculation needed in subsequent work, retain the package and release revisions, backend, runtime, original inputs and options, actual result, and messages. When using an archive row, include its ID, dataset digest, and subset filters. Random equations require their concrete coefficients or a seed together with the generator and version. Preserve WXF and Wolfram version for kernel-native symbolic results. These records allow the same case to be replayed even when later versions extend native dispatch or change the representations of intermediate values.
 
-## Closing perspective
+## Extending the evidence
 
-The configuration, released archive association, and runtime result represent three different objects. Keeping them distinct makes it possible to verify both the geometry algorithm and its software transport. The fixture calculations provide reference points at known hypersurfaces, while the atlas and charge-grid experiments show how quickly the question changes when the input spans an entire catalog or a full lattice. This separation supports future work on richer cohomology domains, additional text-based archives, and direct cross-backend qualification with explicitly identified kernels.
+The archive audits can extend to additional catalogues by retaining the grouping keys, class conventions, and denominators used in each calculation. The charge-grid experiment can extend to other specified equations by replacing the multiplication map and checking smoothness and rank over the new coefficient field. A cross-backend comparison requires an identified Wolfram kernel and corresponding native fixtures. [@anderson-cipro; @cipro-release]

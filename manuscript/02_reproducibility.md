@@ -80,7 +80,52 @@ $$ {#eq:archive_euler}
 
 For formal Chern roots $\alpha_j$, Newton's identity reads $p_3=\sum_j\alpha_j^3=c_1^3-3c_1c_2+3c_3$. The power sum is additive for exact sequences, including the ambient Euler sequences and the tangent-normal sequence in [@prop:adjunction]. It therefore gives the cubic in [@eq:archive_euler] when $c_1(TX)=0$. The computation multiplies sparse integer polynomials, discards terms outside the ambient exponent bounds, and checks that the final coefficient is divisible by three. The released Hodge and Euler fields are withheld as inputs to this calculation. Agreement with the archive is checked by record ID after each computation [@fulton-intersection].
 
-## A related exact combinatorial calculation
+## Chern pairings and a fixed ample polarization {#sec:chern_audit}
+
+::: {.proposition #prop:quadratic_chern title="Ambient Chern pairings"}
+For the regular Calabi–Yau threefold in [@prop:adjunction], let $T_i=\int_X c_2(TX)H_i$. Then
+
+$$
+2T_i=[H_1^{n_1}\cdots H_m^{n_m}]\,
+H_i\left(\sum_a D_a^2-\sum_j(n_j+1)H_j^2\right)
+\prod_a D_a .
+$$ {#eq:quadratic_chern}
+
+The second power sum is $p_2=c_1^2-2c_2$. Apply the ambient Euler sequences and subtract the normal-bundle terms. Since $c_1(TX)=0$, the resulting expression is $-2c_2(TX)$. The coefficient formula follows from [@eq:integration]. [@fulton-intersection; @anderson-cipro]
+:::
+
+::: {.definition #def:ambient_polarization title="The all-ones polarization"}
+Let $L=\mathcal O_A(1,\ldots,1)|_X$ and write $\ell=c_1(L)$. Its degree and second Chern pairing are
+
+$$
+V=\int_X \ell^3,\qquad T=\int_X c_2(TX)\ell=\sum_i T_i .
+$$ {#eq:polarized_pairings}
+
+The line bundle $L$ is ample since it is the restriction of the tensor product of the hyperplane line bundles on the ambient projective factors.
+:::
+
+::: {.corollary #thm:polarized_sections title="Hilbert polynomial at the chosen polarization"}
+For a smooth threefold with trivial canonical bundle, Riemann–Roch and Kodaira vanishing give
+$$
+h^0(X,L^{\otimes t})=\chi(X,L^{\otimes t})
+=\frac{2t^3 V+tT}{12}
+\qquad (t\in\mathbb{Z}_{>0}).
+$$ {#eq:polarized_sections}
+
+The degree-three term of $\operatorname{ch}(L^{\otimes t})\operatorname{Td}(TX)$ gives the polynomial. Ampleness eliminates the higher cohomology at positive powers. See [@prop:line_index] for the unrestricted index. Each $H_i$ also passes the corresponding integral index congruence, $2\int_X H_i^3+T_i\equiv0\pmod{12}$. [@hirzebruch-riemann-roch; @lazarsfeld-positivity]
+:::
+
+The quadratic audit reconstructs the ordered Chern pairing vector for each configuration using [@eq:quadratic_chern]. The script first multiplies the defining divisor classes in the truncated ambient ring. It then reads the exponent complement needed for each cubic contraction. Only after finding the pairings does it compare them with the released second Chern component. All {{CHERN_MATCHED_RECORDS}} configurations match, for {{CHERN_AMBIENT_PAIRINGS}} ordered pairings. The row-level receipt also records $V$, $T$, and the exact index at $t=1$ for every configuration. The audit's comparison is with the pinned release data. [@cipro-release]
+
+::: {.example #thm:polarized_hodge_collision title="One Hodge pair with different polarized Hilbert data"}
+The {{CHERN_MODAL_RECORDS}} non-product archive records at the modal Hodge pair $({{CHERN_MODAL_H11}},{{CHERN_MODAL_H21}})$ give {{CHERN_MODAL_SIGNATURES}} distinct $(V,T)$ values under [@def:ambient_polarization]. For example, record {{CHERN_MODAL_LOW_ID}} has $V={{CHERN_MODAL_LOW_VOLUME}}$, $T={{CHERN_MODAL_LOW_CONTRACTION}}$, and $\chi(X,L)={{CHERN_MODAL_LOW_INDEX}}$. Record {{CHERN_MODAL_HIGH_ID}} gives $V={{CHERN_MODAL_HIGH_VOLUME}}$, $T={{CHERN_MODAL_HIGH_CONTRACTION}}$, and $\chi(X,L)={{CHERN_MODAL_HIGH_INDEX}}$. This is a comparison of selected polarizations, which depend on the presentations.
+:::
+
+![Polarized degrees and Chern pairings from the exact archive audit. (A) Hexagons group {{CICY3_NONPRODUCT_ROWS}} non-product presentations by the degree $V$ and pairing $T$ defined in [@eq:polarized_pairings]. The degree axis and color count are logarithmic. (B) One point per distinct $(V,T)$ within the modal Hodge pair. Marker area and color increase with the number of represented records. The highlighted IDs attain the minimum and maximum index at the chosen polarization in that Hodge group.](../output/figures/chern-audit.png){#fig:chern_audit width=100%}
+
+[@fig:chern_audit] conditions on a Hodge pair to hold fixed the Euler characteristic while varying the chosen polarization. An isomorphism carrying one chosen polarization to another preserves the Hilbert polynomial in [@eq:polarized_sections]. Classification of the underlying six-manifold involves the integral cup product and characteristic class as compatible data on the full cohomology lattice, under the hypotheses discussed in the scholarship section. [@wall-six-manifolds]
+
+## Multigraded Hilbert series
 
 When the defining polynomials form a regular sequence in the multigraded ambient polynomial ring, the Koszul resolution gives the Hilbert series of its quotient:
 $$

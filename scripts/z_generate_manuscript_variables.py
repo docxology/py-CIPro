@@ -31,6 +31,14 @@ def figures_from_source(root, variables):
         "fig:cicy3_structure": "Configuration matrix shape heatmap beside favorability fractions by ambient rank.",
         "fig:cicy3_multiplicity": "Rank concentration of Hodge-pair frequencies and pair counts by multiplicity.",
         "fig:line_bundle_cohomology": "Quintic line-bundle dimensions and supported and unsupported charge regions of the bicubic.",
+        "fig:chern_audit": "Hexagonal count plot of polarized Chern pairings and a scatter plot highlighting index extremes at one Hodge pair.",
+        "fig:atlas_comparison": "Two Euler distribution steps, two ambient-factor profiles, and a signed decomposition of the change in archived favorability.",
+        "fig:bicubic_exact": "Exact bicubic cohomology in a specified smooth member and its excess over the generic formula.",
+    }
+    generated_by = {
+        "fig:chern_audit": "scripts/chern_audit.py",
+        "fig:atlas_comparison": "scripts/atlas_comparison.py",
+        "fig:bicubic_exact": "scripts/bicubic_exact.py",
     }
     pattern = re.compile(
         r"^!\[(.+)\]\(\.\./output/figures/([a-z0-9-]+\.png)\)\{#(fig:[a-z0-9_]+)\b[^}]*\}",
@@ -40,7 +48,8 @@ def figures_from_source(root, variables):
     for source in sorted((root / "manuscript").glob("*.md")):
         text, _ = substitute_manuscript_text(source.read_text(encoding="utf-8"), variables)
         for caption, filename, label in pattern.findall(text):
-            specs.append(Figure(label, filename, caption, descriptions[label]))
+            specs.append(Figure(label, filename, caption, descriptions[label],
+                                generated_by.get(label, "scripts/render_figures.py --suite")))
     if len(specs) != len(descriptions) or {spec.label for spec in specs} != descriptions.keys():
         raise ValueError("Manuscript figure captions do not match the generated figure set")
     return specs

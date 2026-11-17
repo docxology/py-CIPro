@@ -67,6 +67,9 @@ def analysis_records(root, catalog):
         "archive": "data/cicy3-summary.json",
         "analytic_checks": "data/analytic-checks.json",
         "figure_analysis": "data/manuscript-analysis.json",
+        "chern_audit": "data/chern-audit.json",
+        "atlas_comparison": "data/atlas-comparison.json",
+        "bicubic_exact": "data/bicubic-exact.json",
     }
     records = {name: load_json(root / path) for name, path in paths.items()}
     archive = records["archive"]
@@ -84,9 +87,50 @@ def analysis_records(root, catalog):
         or figures["products"] != archive["product_count"]
         or figures["nonproduct_hodge_pairs"] != archive["non_product_hodge_pair_count"]
         or figures["favourable_nonproduct_records"] + figures["favourable_product_records"] != archive["favourable_count"]
+        or any(
+            records[name]["dataset_sha256"] != catalog.member_sha256
+            or records[name]["archive_sha256"] != catalog.sha256
+            for name in ("chern_audit", "atlas_comparison", "bicubic_exact")
+        )
+        or records["bicubic_exact"]["native_receipt_sha256"]
+        != sha256((root / paths["figure_analysis"]).read_bytes()).hexdigest()
     ):
         raise ValueError("Archive summary and exact checks must bind the current release and population")
     return records, paths
+
+
+def add_revision_variables(variables, records):
+    chern = records["chern_audit"]["summary"]
+    if chern["matched_records"] != chern["records"] or chern["records"] != records["archive"]["record_count"]:
+        raise ValueError("The Chern audit must cover every archive record")
+    variables["CHERN_MODAL_H11"], variables["CHERN_MODAL_H21"] = chern["modal_hodge"]
+    for name, value in chern.items():
+        if name != "modal_hodge":
+            variables["CHERN_" + name.upper()] = (
+                str(value) if name.endswith(("_id", "_volume", "_contraction", "_index")) else value
+            )
+
+    atlas = records["atlas_comparison"]["manuscript_values"]
+    if any(not re.fullmatch(r"ATLAS_[A-Z0-9_]+", name) or name in variables for name in atlas):
+        raise ValueError("Atlas manuscript values must use unique ATLAS_ tokens")
+    variables.update(atlas)
+
+    exact = records["bicubic_exact"]["summary"]
+    if (exact["points"] != exact["native_index_matches"]
+        or exact["points"] != exact["native_supported_matches"] + exact["native_unsupported_resolved"]):
+        raise ValueError("The exact bicubic audit must account for every plotted charge")
+    for token, key in {
+        "POINTS": "points",
+        "SUPPORTED_MATCHES": "native_supported_matches",
+        "INDEX_MATCHES": "native_index_matches",
+        "UNSUPPORTED_RESOLVED": "native_unsupported_resolved",
+        "MIXED_NONZERO": "mixed_nonzero",
+        "JUMPING_POINTS": "jumping_points",
+        "MAX_PAIRED_EXCESS": "max_paired_excess",
+        "MAX_TOTAL": "max_intermediate_total",
+        "WITNESS_PAIRED_EXCESS": "witness_paired_excess",
+    }.items():
+        variables["BICUBIC_EXACT_" + token] = exact[key]
 
 
 def add_figure_variables(variables, analysis):
@@ -157,6 +201,9 @@ def workflow_rows(root, software):
     for label, path in (
         ("Exact intersection audit", "scripts/check_intersections.py"),
         ("Atlas and charge-grid figures", "scripts/render_figures.py"),
+        ("Chern and polarized index audit", "scripts/chern_audit.py"),
+        ("Archive weighting comparisons", "scripts/atlas_comparison.py"),
+        ("Exact bicubic cohomology", "scripts/bicubic_exact.py"),
         ("Manuscript hydration", "scripts/z_generate_manuscript_variables.py"),
     ):
         if not (root / path).is_file():
@@ -228,6 +275,7 @@ def build_variables(root):
         variables[f"NATIVE_{area}"] = row["python"]
         variables[f"RELEASED_{area}"] = row["released"]
     add_figure_variables(variables, analysis["figure_analysis"])
+    add_revision_variables(variables, analysis)
     formatted = {name: as_text(value) for name, value in variables.items()}
     evidence_paths = [
         "pyproject.toml",
@@ -237,6 +285,9 @@ def build_variables(root):
         "src/py_cipro/_release.py",
         "src/py_cipro/catalog.py",
         "scripts/check_intersections.py",
+        "scripts/chern_audit.py",
+        "scripts/atlas_comparison.py",
+        "scripts/bicubic_exact.py",
         "scripts/manuscript_analysis.py",
         "scripts/manuscript_variables.py",
         "scripts/render_figures.py",
