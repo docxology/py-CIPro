@@ -1,4 +1,5 @@
 import { mountMethodLab } from './method-lab.js'
+import { initializeResearch } from './research.js'
 
 const $ = (id) => document.getElementById(id)
 const number = new Intl.NumberFormat('en-US')
@@ -18,11 +19,13 @@ const backendName = (backend) => backendNames[backend] ?? 'CIPro'
 const state = {
   records: [], bins: [], domain: { h11: 10, h21: 10 }, source: null,
   view: [], query: '', favourable: 'all', product: 'all', pair: null, bin: null,
+  research: null,
   recordId: null, record: null, page: 0, sort: 'id', direction: 1,
   kernelEnabled: false, kernelChecked: false, computing: false, backend: 'python', backends: [],
 }
 let plotPoints = []
 let requestSerial = 0
+let viewSerial = 0
 let updateMethodBackend = () => {}
 
 function element(tag, content, className) {
@@ -67,6 +70,7 @@ function writeView() {
   if (state.sort !== 'id') url.searchParams.set('sort', state.sort)
   if (state.direction < 0) url.searchParams.set('dir', 'desc')
   if (state.recordId !== null) url.searchParams.set('id', state.recordId)
+  if (state.research) url.searchParams.set('study', state.research.query)
   history.replaceState(null, '', url)
 }
 
@@ -76,6 +80,7 @@ function filterRecords() {
   const parts = query.match(/^(\d{1,3})\s*[,/]\s*(\d{1,3})$/)
   const pair = parts ? `${Number(parts[1])},${Number(parts[2])}` : null
   return state.records.filter((record) => (
+    (!state.research || state.research.ids.has(record.id)) &&
     (!query || record.id === id || (!isHodgePlaceholder(record) && pairKey(record) === pair)) &&
     (state.favourable === 'all' || record.favourable === (state.favourable === 'yes')) &&
     (state.product === 'all' || record.product === (state.product === 'yes'))
@@ -472,11 +477,55 @@ function renderView({ restorePage = false, reload = false } = {}) {
   } else if (reload || !state.record) selectRecord(state.recordId, { updateURL: false, reload })
   state.page = Math.min(state.page, Math.max(0, Math.ceil(state.view.length / pageSize) - 1))
   $('result-count').textContent = `${number.format(state.view.length)} of ${number.format(state.records.length)} configurations`
+  $('research-cohort').hidden = !state.research
+  $('research-run-python').hidden = !state.research
+  if (state.research) {
+    const count = state.research.ids.size
+    $('research-cohort-label').textContent = `${state.research.label} · ${number.format(count)} source configuration${count === 1 ? '' : 's'}`
+  }
   renderChips()
   drawCurrentScatter()
   renderHistogram(histogram)
   renderTable()
   writeView()
+}
+
+function openResearchRecords(ids, label, query) {
+  viewSerial += 1
+  $('research-cohort-error').hidden = true
+  state.research = { ids: new Set(ids), label, query: String(query) }
+  $('search').value = state.query = ''
+  $('favourability').value = state.favourable = 'all'
+  $('product').value = state.product = 'all'
+  state.pair = state.bin = null
+  state.page = 0
+  state.recordId = ids.length === 1 ? ids[0] : null
+  const url = new URL(location.href)
+  url.hash = 'records'
+  history.pushState(null, '', url)
+  renderView({ restorePage: true, reload: true })
+  $('records-title').focus({ preventScroll: true })
+  $('records').scrollIntoView({ block: 'start' })
+}
+
+async function restoreView() {
+  const serial = ++viewSerial
+  const query = new URLSearchParams(location.search).get('study')
+  readView()
+  state.research = null
+  $('research-cohort-error').hidden = true
+  if (query) {
+    try {
+      const { ids, label } = await loadJSON(`/api/research/records?${query}`)
+      if (serial !== viewSerial) return
+      state.research = { ids: new Set(ids), label, query }
+    } catch (error) {
+      if (serial !== viewSerial) return
+      $('research-cohort-error').textContent = `Figure selection unavailable. ${error.message}`
+      $('research-cohort-error').hidden = false
+    }
+  }
+  renderView({ restorePage: true, reload: true })
 }
 
 function changeFilter(key, value) {
@@ -486,6 +535,13 @@ function changeFilter(key, value) {
 }
 
 $('filters').addEventListener('submit', (event) => event.preventDefault())
+$('research-cohort-clear').addEventListener('click', () => {
+  viewSerial += 1
+  state.research = null
+  state.page = 0
+  renderView({ restorePage: true })
+  $('records-title').focus({ preventScroll: true })
+})
 $('search').addEventListener('input', (event) => changeFilter('query', event.target.value))
 $('favourability').addEventListener('change', (event) => changeFilter('favourable', event.target.value))
 $('product').addEventListener('change', (event) => changeFilter('product', event.target.value))
@@ -555,7 +611,7 @@ $('compute-form').addEventListener('submit', async (event) => {
     return
   }
   const recordId = state.record.id
-  const backend = state.backend
+  const backend = event.submitter?.value === 'python' ? 'python' : state.backend
   const serial = requestSerial
   state.computing = true
   renderKernelState()
@@ -583,8 +639,7 @@ $('compute-form').addEventListener('submit', async (event) => {
 
 window.addEventListener('popstate', () => {
   if (!state.source) return
-  readView()
-  renderView({ restorePage: true, reload: true })
+  restoreView()
 })
 
 const redraw = new ResizeObserver(() => {
@@ -630,7 +685,7 @@ loadJSON('/api/kernel').then(({ enabled, default_backend, backends }) => {
   renderBackendControls()
 })
 
-loadJSON('/api/catalog').then(({ records, dataset, release, sha256 }) => {
+loadJSON('/api/catalog').then(async ({ records, dataset, release, sha256 }) => {
   if (!records?.length) throw new Error('The released catalogue is empty.')
   state.source = { dataset, release, sha256 }
   state.records = records
@@ -649,9 +704,9 @@ loadJSON('/api/catalog').then(({ records, dataset, release, sha256 }) => {
   $('hodge-sentinel').hidden = !placeholders
   $('total-euler').textContent = `${minimum} to ${maximum}`
   $('release-sha').textContent = sha256
-  readView()
-  renderView({ restorePage: true, reload: true })
+  await restoreView()
   drawHero()
+  initializeResearch({ openRecords: openResearchRecords })
 }).catch((error) => {
   $('result-count').textContent = 'Catalogue unavailable'
   $('catalogue-error').textContent = error.message

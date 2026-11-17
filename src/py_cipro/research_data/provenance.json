@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "manuscript_title": "py-CIPro: Exact computation and an atlas of complete-intersection Calabi–Yau threefolds",
+  "manuscript_pages": 12,
+  "source_commit": "e577ca605bd30eaad317539eeb0b69890c925e42",
+  "template_version": "5.0.2",
+  "template_commit": "9bebe79195b8f6be4a3da02838fcd296b3012a56",
+  "archive_sha256": "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53",
+  "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
+  "assets_sha256": {
+    "manuscript.pdf": "56b18a90d88211bb60d81fef75c7b9407be7fdf698d9bb4f283535957c343aae",
+    "manuscript-analysis.json": "1b31f593cfba088a85ff9179967d0b16bf61b05cbc8863e9f3909508811e8d1f",
+    "cicy3-atlas.pdf": "dff412d3f136346b30665be850505c8b8cc679266124b4b0b10bd0b0621102f9",
+    "cicy3-structure.pdf": "2c11a5360761971e8ba4eb512629398d41539d465ab49b9c86c07c9341c8ded6",
+    "cicy3-multiplicity.pdf": "0ab78255f854d7a9473c02a52e3ae40c07286f12b6c18130708a5a08965460c8",
+    "line-bundle-cohomology.pdf": "e9f3fc53e5f90b3a1a86c5463922a56e6bb3f9403255e78c2f4d77ff4749c79a"
+  },
+  "figures": {
+    "cicy3-atlas": {
+      "caption": "Hodge coordinates and the discrete Euler distribution. (A) Each point is one of 265 recorded pairs among 7,868 non-product presentations. Color and marker area give the record multiplicity on a logarithmic scale. The bicubic and quintic identify the independently computed fixtures in [@tbl:geometry_fixtures]. (B) Each bar counts one exact stored Euler value across all 7,890 presentations. The dashed line marks the median. Products contribute only to the zero bar. The archive is treated as a finite census, so the counts have no sampling error bars.",
+      "alt_text": "Hodge-pair scatter with multiplicities and a frequency chart of Euler characteristics."
+    },
+    "cicy3-multiplicity": {
+      "caption": "Concentration of recorded Hodge pairs in the non-product catalog. The cumulative curve ranks pairs by decreasing presentation multiplicity and shows the resulting share of 7,868 records against a dashed equal-weight reference. The distribution panel bins the 265 pairs by how many times they occur. Each pair contributes once to that histogram. The figure excludes the product placeholder and uses exact finite-catalog counts.",
+      "alt_text": "Rank concentration of Hodge-pair frequencies and pair counts by multiplicity."
+    },
+    "cicy3-structure": {
+      "caption": "Configuration shape and released favorability flags. The shape panel counts all 7,890 presentations by number of ambient factors and number of defining equations. Color shows the cell count on a logarithmic scale. The flag panel groups 7,868 non-product presentations by ambient factor count and displays the fraction flagged favorable in each group. The group counts give the denominators. Light gray shape cells denote absence from this release.",
+      "alt_text": "Configuration matrix shape heatmap beside favorability fractions by ambient rank."
+    },
+    "line-bundle-cohomology": {
+      "caption": "Independent line-bundle tests and native cohomology domains. The quintic panel plots $h^0$ and $-h^3$ on a symmetric logarithmic scale for $|k|\\le10$. They agree with independent binomial counts, with the two intermediate dimensions zero throughout and the index shown by the dashed curve. The bicubic panel classifies native results for integer pairs with $|a|,|b|\\le8$. Circles and triangles indicate $H^0$ and $H^3$ only, and grow with the dimension on a log scale. Squares mark acyclic results and crosses mark unsupported inputs. The separately computed index is verified on the entire grid.",
+      "alt_text": "Quintic line-bundle dimensions and supported and unsupported charge regions of the bicubic."
+    }
+  }
+}

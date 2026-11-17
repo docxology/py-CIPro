@@ -1,6 +1,7 @@
 """Verify loopback HTTP routes, native workers, and the Wolfram call boundary."""
 
 from concurrent.futures import ThreadPoolExecutor
+from hashlib import sha256
 from http.client import HTTPConnection
 import json
 from pathlib import Path
@@ -88,6 +89,78 @@ class DashboardTests(unittest.TestCase):
                         "source": "CIPro v1.0 Python equivalent", "backend": "python", "properties": QUINTIC_VALUES,
                     })
             kernel_call.assert_not_called()
+
+    def test_packaged_manuscript_and_figure_assets(self):
+        status, _, data = self.request("GET", "/api/research/provenance")
+        self.assertEqual(status, 200)
+        provenance = json.loads(data)
+        self.assertGreater(provenance["manuscript_pages"], 0)
+        self.assertEqual(provenance["archive_sha256"], self.server.catalog.sha256)
+        self.assertEqual(provenance["dataset_sha256"], self.server.catalog.member_sha256)
+        self.assertEqual(len(provenance["figures"]), 4)
+        for name, digest in provenance["assets_sha256"].items():
+            route = f"/research/{name}" if name.endswith(".pdf") else "/api/research"
+            with self.subTest(route=route):
+                status, headers, body = self.request("GET", route)
+                self.assertEqual(status, 200)
+                self.assertEqual(sha256(body).hexdigest(), digest)
+                if route.startswith("/research/"):
+                    self.assertTrue(body.startswith(b"%PDF-"))
+                    self.assertIn(("Content-Type", "application/pdf"), headers)
+                    self.assertIn(("Content-Disposition", f'inline; filename="{name}"'), headers)
+                    head_status, head_headers, head_body = self.request("HEAD", route)
+                    self.assertEqual((head_status, head_body), (200, b""))
+                    self.assertIn(("Content-Length", str(len(body))), head_headers)
+        self.assertEqual(self.request("GET", "/research/other.pdf")[0], 404)
+
+    def test_research_mark_selection_returns_exact_archive_ids(self):
+        records = self.server.catalog.records
+        examples = {
+            "figure=atlas&h11=1&h21=101": [7890],
+            "figure=atlas&euler=0&product=1": [row.id for row in records if row.product and row.euler == 0],
+            "figure=atlas&euler=0": [row.id for row in records if row.euler == 0],
+            "figure=structure&factors=7&codimension=8": [
+                row.id for row in records if len(row.configuration) == 7 and len(row.configuration[0]) == 8
+            ],
+            "figure=structure&factors=7&favourable=1": [
+                row.id for row in records if not row.product and row.favourable and len(row.configuration) == 7
+            ],
+            "figure=multiplicity&rank=1": [row.id for row in records if not row.product and (row.h11, row.h21) == (9, 21)],
+            "figure=cohomology&geometry=bicubic": [7884],
+        }
+        for query, expected in examples.items():
+            with self.subTest(query=query):
+                status, _, body = self.request("GET", f"/api/research/records?{query}")
+                self.assertEqual(status, 200)
+                payload = json.loads(body)
+                self.assertEqual(payload["ids"], expected)
+                self.assertEqual(payload["matched"], len(expected))
+                self.assertTrue(payload["label"])
+        for invalid in ("figure=atlas&euler=0&euler=1", "figure=atlas&euler=0&product=unknown",
+                        "figure=structure&factors=seven", "figure=multiplicity&rank=0"):
+            self.assertEqual(self.request("GET", f"/api/research/records?{invalid}")[0], 400)
+
+    def test_research_reruns_native_cohomology_and_reports_unsupported_dimensions(self):
+        route = "/api/research/rerun"
+        examples = (
+            ({"geometry": "quintic", "k": 5}, 7890, 125, [125, 0, 0, 0], "supported"),
+            ({"geometry": "bicubic", "a": 1, "b": -1}, 7884, 0, [0, 0, 0, 0], "acyclic"),
+            ({"geometry": "bicubic", "a": -8, "b": 1}, 7884, 63, None, "unsupported"),
+        )
+        with patch.object(self.server.kernel, "call_result") as kernel_call:
+            for charges, record_id, index, dimensions, state in examples:
+                with self.subTest(charges=charges):
+                    status, _, body = self.post({"figure": "cohomology", **charges}, route, Origin=self.origin)
+                    self.assertEqual(status, 200)
+                    result = json.loads(body)
+                    self.assertEqual((result["backend"], result["record_id"]), ("python", record_id))
+                    self.assertEqual((result["index"], result["dimensions"], result["status"]), (index, dimensions, state))
+                    self.assertTrue(result["matches_manuscript"])
+            kernel_call.assert_not_called()
+        payload = {"figure": "cohomology", "geometry": "quintic", "k": 5}
+        self.assertEqual(self.post(payload, route, Origin="https://example.invalid")[0], 403)
+        self.assertEqual(self.post({**payload, "k": 11}, route)[0], 400)
+        self.assertEqual(self.post({**payload, "k": True}, route)[0], 400)
 
     def test_wolfram_default_remains_lazy(self):
         with patch("py_cipro._client.WolframLanguageSession") as session, DashboardServer(0, kernel=True) as server:

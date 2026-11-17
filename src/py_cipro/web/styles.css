@@ -99,6 +99,9 @@ h3 { font-size: 1.17rem; }
 .histogram-axis { display: flex; justify-content: space-between; gap: .5rem; padding: .42rem 1.2rem 0; color: var(--dim); font-size: .72rem; }
 .histogram-info { min-height: 44px; }
 .catalogue { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+.research-cohort { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--line); font-size: .85rem; }
+.research-cohort p { margin: 0; width: 100%; font-weight: 650; }
+#research-run-python { margin-inline-start: .4rem; }
 .table-scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .83rem; font-variant-numeric: tabular-nums; }
 .table-card table { min-width: 445px; }

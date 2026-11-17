@@ -99,3 +99,23 @@ reports are in `output/reports/`. The authored variables resolve into
 `output/data/software_and_analysis.json` binds the machine-readable software
 record and the input and figure SHA-256 digests. Figure captions and alt text
 are registered in `output/figures/figure_registry.json`.
+
+## Refresh the dashboard's manuscript assets
+
+The installed dashboard includes the validated manuscript PDF, four
+standalone vector figures, and the data behind the plots. To refresh the
+bundle after a verified render, collect these files in an export directory
+and generate `SHA256SUMS` there with relative paths.
+
+- `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
+- `figures/` contains the four named PDF exports and `figure_registry.json`.
+- `data/` contains `manuscript-analysis.json` and `software_and_analysis.json`.
+- `reports/` contains `validation_report.json` and `artifact_manifest.json`.
+
+Run `python scripts/package_research.py EXPORT --template-commit COMMIT
+--title TITLE --pages PAGES` from the project checkout. Use the full
+renderer commit and the values reported by `pdfinfo` for the PDF title and
+page count. The script checks the export digests, green template validation,
+and the match to the tracked analysis before updating the files in
+`src/py_cipro/research_data/`. Rebuild and test the wheel to check the
+packaged routes. [Dashboard guide](dashboard.md)

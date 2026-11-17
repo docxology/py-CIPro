@@ -16,6 +16,15 @@ from urllib.parse import urlsplit
 from ._catalog import FUNCTIONS, MODIFICATIONS, PROPERTIES
 from ._client import CIPro, EvaluationError, KernelUnavailable
 from ._dashboard_examples import EXAMPLES
+from ._dashboard_research import (
+    ANALYSIS_NAME,
+    PDF_NAMES,
+    PROVENANCE_NAME,
+    prepare_cohomology,
+    record_selection,
+    research_bundle,
+    verify_catalog_binding,
+)
 from ._dashboard_worker import MAX_RESPONSE, run_operation
 from ._native import NATIVE_FUNCTIONS, NATIVE_MODIFICATIONS, NATIVE_PROPERTIES
 from .catalog import get_catalog
@@ -33,7 +42,10 @@ STATIC = {
     "/styles.css": ("styles.css", "text/css"),
     "/explorer.js": ("explorer.js", "text/javascript"),
     "/method-lab.js": ("method-lab.js", "text/javascript"),
+    "/research.js": ("research.js", "text/javascript"),
+    "/research.css": ("research.css", "text/css"),
 }
+RESEARCH_PDFS = {f"/research/{name}": name for name in PDF_NAMES}
 _RECORD_QUERY = re.compile(r"id=([1-9][0-9]{0,3})\Z")
 
 
@@ -77,6 +89,30 @@ class DashboardServer(ThreadingHTTPServer):
         }
         result = self.run(payload, backend)
         return {"source": result["source"], "backend": result["backend"], "properties": result["result"]}
+
+    def research(self):
+        try:
+            bundle = research_bundle()
+            verify_catalog_binding(bundle, self.catalog)
+        except (AttributeError, OSError, ValueError, KeyError, TypeError) as exc:
+            LOGGER.warning("Research assets could not be verified: %s", exc)
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, "The bundled manuscript assets are unavailable.") from exc
+        return bundle
+
+    def research_records(self, query):
+        bundle = self.research()
+        try:
+            return record_selection(query, bundle.analysis, self.catalog)
+        except ValueError as exc:
+            raise RequestError(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+
+    def research_rerun(self, payload):
+        bundle = self.research()
+        try:
+            operation = prepare_cohomology(payload, bundle.analysis, self.catalog)
+        except ValueError as exc:
+            raise RequestError(HTTPStatus.BAD_REQUEST, str(exc)) from exc
+        return self.run(operation, "python")
 
     def run(self, payload, backend):
         if not self.compute_lock.acquire(blocking=False):
@@ -148,16 +184,27 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json(HTTPStatus.OK, {"enabled": True, "default_backend": self.server.default_backend, "backends": BACKENDS})
             elif target.path == "/api/methods" and not target.query:
                 self._reply(HTTPStatus.OK, self.server.method_body, "application/json")
+            elif target.path == "/api/research" and not target.query:
+                self._reply(HTTPStatus.OK, self.server.research().bodies[ANALYSIS_NAME], "application/json")
+            elif target.path == "/api/research/provenance" and not target.query:
+                self._reply(HTTPStatus.OK, self.server.research().bodies[PROVENANCE_NAME], "application/json")
+            elif target.path == "/api/research/records":
+                self._json(HTTPStatus.OK, self.server.research_records(target.query))
+            elif target.path in RESEARCH_PDFS and not target.query:
+                name = RESEARCH_PDFS[target.path]
+                self._reply(HTTPStatus.OK, self.server.research().bodies[name], "application/pdf", filename=name)
             else:
                 raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
         except RequestError as exc:
             self._json(exc.status, {"error": str(exc)})
 
+    do_HEAD = do_GET
+
     def do_POST(self):
         try:
             self._check_host()
             target = self._target()
-            if target.path not in ("/api/compute", "/api/run") or target.query:
+            if target.path not in ("/api/compute", "/api/run", "/api/research/rerun") or target.query:
                 raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
             origin = self.headers.get("Origin")
             if origin is not None and origin != f"http://{self.headers['Host']}":
@@ -166,9 +213,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 record_id, properties, backend = self._read_compute_request()
                 self._record(record_id)
                 self._json(HTTPStatus.OK, self.server.compute(record_id, properties, backend))
-            else:
+            elif target.path == "/api/run":
                 payload, backend = self._read_lab_request()
                 self._json(HTTPStatus.OK, self.server.run(payload, backend))
+            else:
+                self._json(HTTPStatus.OK, self.server.research_rerun(self._read_json(MAX_COMPUTE_BODY)))
         except RequestError as exc:
             self._json(exc.status, {"error": str(exc)})
 
@@ -255,10 +304,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _json(self, status, value):
         self._reply(status, _json_bytes(value), "application/json")
 
-    def _reply(self, status, body, content_type):
+    def _reply(self, status, body, content_type, *, filename=None):
         self.send_response(status)
-        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+        media = content_type if content_type == "application/pdf" else f"{content_type}; charset=utf-8"
+        self.send_header("Content-Type", media)
         self.send_header("Content-Length", str(len(body)))
+        if filename is not None:
+            self.send_header("Content-Disposition", f'inline; filename="{filename}"')
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -268,7 +320,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
         )
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def log_message(self, format, *args):
         pass

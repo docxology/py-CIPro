@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="color-scheme" content="light dark">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore Calabi–Yau threefolds and run CIPro methods in Python or Wolfram.">
+  <meta name="description" content="Explore Calabi–Yau threefolds, reproduce the py-CIPro manuscript figures, and run CIPro methods.">
   <title>CIPro Explorer</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/research.css">
   <script src="/explorer.js" type="module"></script>
 </head>
 <body>
@@ -14,7 +15,7 @@
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="#main"><span class="brand-icon" aria-hidden="true">C</span><span>CIPro <span class="brand-sub">Explorer</span></span></a>
-      <nav aria-label="Explorer sections"><a href="#explore">Explore</a><a href="#records">Catalogue</a><a href="#method-lab">Method lab</a><a href="#provenance">Sources</a></nav>
+      <nav aria-label="Explorer sections"><a href="#explore">Explore</a><a href="#records">Catalogue</a><a href="#research">Manuscript</a><a href="#method-lab">Method lab</a><a href="#provenance">Sources</a></nav>
       <a class="kernel-indicator" href="#kernel"><span id="kernel-dot" aria-hidden="true"></span><span id="kernel-status">Checking backends</span></a>
     </div>
   </header>
@@ -27,7 +28,7 @@
         <p>Explore the Hodge numbers, Euler characteristics and defining configurations of complete intersections in products of projective spaces.</p>
         <div class="hero-actions">
           <a class="button hero-button" href="#explore">Explore the data <span aria-hidden="true">↓</span></a>
-          <a class="button secondary-hero" href="#method-lab">Open method lab</a>
+          <a class="button secondary-hero" href="#research">Open manuscript figures</a>
           <button class="button secondary-hero" id="share" type="button">Copy view link</button>
           <span class="share-status" id="share-status" role="status"></span>
         </div>
@@ -69,7 +70,13 @@
 
     <section class="catalogue" id="records" aria-labelledby="records-title">
       <article class="card table-card">
-        <div class="card-heading"><div><h2 id="records-title">Configurations</h2><p>Select a record to inspect its degree matrix and provenance.</p></div></div>
+        <div class="card-heading"><div><h2 id="records-title" tabindex="-1">Configurations</h2><p>Select a record to inspect its degree matrix and provenance.</p></div></div>
+        <div id="research-cohort" class="research-cohort" hidden>
+          <p id="research-cohort-label" role="status"></p>
+          <a href="#research">Back to manuscript figures</a>
+          <button type="button" class="text-button" id="research-cohort-clear">Clear figure selection</button>
+        </div>
+        <p class="notice error" id="research-cohort-error" role="alert" hidden></p>
         <div class="table-scroll" tabindex="0" aria-label="Configuration records">
           <table><thead><tr>
             <th scope="col" data-column="id" aria-sort="ascending"><button type="button" data-sort="id">ID <span aria-hidden="true">↑</span></button></th>
@@ -95,6 +102,7 @@
               <legend>CIProp keys</legend>
               <div class="key-list"><label><input type="checkbox" name="property" value="CIDim" checked> CIDim</label><label><input type="checkbox" name="property" value="CY" checked> CY</label><label><input type="checkbox" name="property" value="Euler" checked> Euler</label></div>
               <button class="button run-button" type="submit">Run calculation</button>
+              <button class="button run-button" type="submit" value="python" id="research-run-python" hidden>Run in Python</button>
             </fieldset>
             <p class="notice" id="kernel-help" role="status">Checking compute backends.</p>
             <div id="compute-output" aria-label="Computed property comparison" hidden></div>
@@ -102,6 +110,8 @@
         </article>
       </aside>
     </section>
+
+    <section class="research" id="research" aria-labelledby="research-title"></section>
 
     <section class="method-lab" id="method-lab" aria-labelledby="lab-title">
       <div class="section-title"><div><h2 id="lab-title">Method lab</h2><p>Choose a CIPro function, property, or modification and run a small example or your own input.</p></div></div>

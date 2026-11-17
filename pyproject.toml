@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py-CIPro"
-version = "0.5.0"
+version = "0.6.0"
 description = "Python interface to the upstream CIPro Wolfram Language package"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,4 +21,4 @@ where = ["src"]
 include = ["py_cipro*"]
 
 [tool.setuptools.package-data]
-py_cipro = ["vendor/CIProPackage.zip", "web/*.html", "web/*.css", "web/*.js"]
+py_cipro = ["vendor/CIProPackage.zip", "web/*.html", "web/*.css", "web/*.js", "research_data/*.json", "research_data/*.pdf"]
