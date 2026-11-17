@@ -188,7 +188,8 @@ Function[{endpointPath, keyName},
        Return[fail["endpoint_permissions_failed"]]];
     permissions = Quiet[Check[Information[deployed, "Permissions"], $Failed]];
     If[permissions === $Failed || FailureQ[permissions] ||
-       !FreeQ[permissions, "Public" | "Authenticated" | _Information],
+       !FreeQ[permissions, "Public" | "Authenticated" | _Information] ||
+       !FreeQ[permissions, HoldPattern[(All | "All") -> _]],
        Return[fail["endpoint_permissions_failed"]]];
     ok[<|"endpoint_path" -> endpointPath|>]
   ]
