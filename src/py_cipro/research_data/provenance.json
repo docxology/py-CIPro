@@ -1,25 +1,39 @@
 {
   "schema_version": 1,
-  "manuscript_title": "py-CIPro: Exact geometry, catalog weighting, and cohomology on Calabi–Yau threefolds",
-  "manuscript_pages": 19,
-  "source_commit": "b603dda12ed4895ebdc7d11952d39efa8d2ce317",
+  "manuscript_title": "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds",
+  "manuscript_author": "Daniel Friedman",
+  "manuscript_pages": 25,
+  "source_commit": "b27247b50b9b87abe6da24d35ad81562184ea7fc",
   "template_version": "5.0.2",
   "template_commit": "9bebe79195b8f6be4a3da02838fcd296b3012a56",
   "archive_sha256": "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53",
   "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
   "assets_sha256": {
-    "manuscript.pdf": "9236638858d824fa85e341ae7066ede756d610817a090f18cfe60f6169e89129",
+    "manuscript.pdf": "d3f8fd0eb009911ad22a235b2c89e51eb4f9035f62167bbffb5b82a61b53f84e",
+    "graphical-abstract.pdf": "b09ae0b6deba07185c15414b32b7481791d6799541c48d4fa002a67edba552dd",
+    "graphical-abstract.png": "36c82423bc51fe58bc782bfb75c42d8fb1b1e2460ef5a0276fc42fecb3beb4a9",
     "manuscript-analysis.json": "1b31f593cfba088a85ff9179967d0b16bf61b05cbc8863e9f3909508811e8d1f",
     "chern-audit.json": "53873f45360ce7823276029493c539fed534bf1eee40f10acde25f902184944e",
     "atlas-comparison.json": "12c18efda29563953a96bcaa6c33762c8f7a54176f113c6a2275ed8b4745fc13",
     "bicubic-exact.json": "cb373be3f35cb24e38887a86d8247824cd082184de4fae58ce5907d7676855af",
+    "integral-invariants.json": "5d22566bf689ea9e8a94bfaa526325b179b50c00c52809f00a55ede9818a03de",
     "chern-audit.pdf": "82706276d0c7518b221a04a1a38d1dc49c21ab333d88dfe2d7db67b52f45c404",
     "cicy3-atlas.pdf": "dff412d3f136346b30665be850505c8b8cc679266124b4b0b10bd0b0621102f9",
     "cicy3-multiplicity.pdf": "0ab78255f854d7a9473c02a52e3ae40c07286f12b6c18130708a5a08965460c8",
     "cicy3-structure.pdf": "2c11a5360761971e8ba4eb512629398d41539d465ab49b9c86c07c9341c8ded6",
     "atlas-comparison.pdf": "96da5bfa9bc9c4d80e8ea519fcde4237d5961af5a0d27115eb1d852641ae2eef",
+    "integral-invariants.pdf": "2af279632ccb42e532f526fd4eaa941aa8bc2ac84ae1e8c5fc35f922b412347f",
     "line-bundle-cohomology.pdf": "e9f3fc53e5f90b3a1a86c5463922a56e6bb3f9403255e78c2f4d77ff4749c79a",
     "bicubic-exact.pdf": "dd3ec1db4fea029235efe2bb794821b62d1acc6f9db20b3c669f38a20de70f52"
+  },
+  "cover": {
+    "alt_text": "Graphical abstract showing the second Chern audit, Euler medians under two catalogue weights, cohomology jumps on a specified smooth bicubic, and the Hodge groups distinguished by ambient lattice divisibility.",
+    "studies_sha256": {
+      "chern-audit": "53873f45360ce7823276029493c539fed534bf1eee40f10acde25f902184944e",
+      "atlas-comparison": "12c18efda29563953a96bcaa6c33762c8f7a54176f113c6a2275ed8b4745fc13",
+      "bicubic-exact": "cb373be3f35cb24e38887a86d8247824cd082184de4fae58ce5907d7676855af",
+      "integral-invariants": "5d22566bf689ea9e8a94bfaa526325b179b50c00c52809f00a55ede9818a03de"
+    }
   },
   "figures": {
     "chern-audit": {
@@ -41,6 +55,10 @@
     "atlas-comparison": {
       "caption": "Sensitivity of the non-product archive to the unit of counting. (A) Cumulative Euler shares under the two measures. The bracket marks the largest absolute difference on the archived Euler support. (B) Share of total weight at each ambient factor count. (C) Flagged share conditional on ambient factor count under either measure. (D) Ambient composition, within-group, and net changes in the pooled flagged share in percentage points. The complete group denominators and rational weights are preserved in the analysis data.",
       "alt_text": "Two Euler distribution steps, two ambient-factor profiles, and a signed decomposition of the change in archived favorability."
+    },
+    "integral-invariants": {
+      "caption": "Cubic and second Chern content in the released CIPro archive. (A) Occupied cells show exact counts for the 36 observed pairs among 7,868 non-product configurations, with a logarithmic color scale. The axes show the occupied integer levels for each invariant. Empty cells have zero records. (B) Two rank-one ample complete intersections share their Hodge pair and Euler characteristic and have different content on the full integral second cohomology. The degrees and record IDs trace both computations to the release.",
+      "alt_text": "Divisibility of cubic intersections and second Chern pairings on ambient divisor lattices, with breakdowns by Hodge pair."
     },
     "line-bundle-cohomology": {
       "caption": "Independent line-bundle tests and native cohomology domains. The quintic panel plots $h^0$ and $-h^3$ on a symmetric logarithmic scale for $|k|\\le10$. They agree with independent binomial counts, with the two intermediate dimensions zero throughout and the index shown by the dashed curve. The bicubic panel classifies native results for integer pairs with $|a|,|b|\\le8$. Circles and triangles indicate $H^0$ and $H^3$ only, and grow with the dimension on a log scale. Squares mark acyclic results and crosses mark unsupported inputs. The separately computed index is verified on the entire grid.",
