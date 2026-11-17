@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py-CIPro"
-version = "0.2.0"
+version = "0.4.0"
 description = "Python interface to the upstream CIPro Wolfram Language package"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
-dependencies = ["wolframclient>=1.4.0,<2"]
+dependencies = ["sympy>=1.12,<2", "wolframclient>=1.4.0,<2"]
 
 [project.scripts]
 py-cipro-dashboard = "py_cipro.dashboard:main"

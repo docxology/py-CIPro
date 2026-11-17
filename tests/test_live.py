@@ -27,3 +27,16 @@ class LiveTests(unittest.TestCase):
 
     def test_cicy3(self):
         self.assertEqual(self.ci.Data("Cicy3", "Length"), 7890)
+
+    def test_python_wolfram_scalar_agreement(self):
+        geometries = (
+            {"DimPs": [4], "Conf": [[5]]},
+            {"DimPs": [2, 2], "Conf": [[3], [3]]},
+            {"DimPs": [1, 1, 1, 1], "Conf": [[2], [2], [2], [2]]},
+        )
+        keys = ("CIDim", "CY", "Euler")
+        for geometry in geometries:
+            with self.subTest(geometry=geometry):
+                wolfram = self.ci.property(geometry, keys, backend="wolfram")
+                python = self.ci.property(geometry, keys, backend="python")
+                self.assertEqual(tuple(python[key] for key in keys), tuple(wolfram[key] for key in keys))

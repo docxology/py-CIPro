@@ -15,19 +15,21 @@ from wolframclient.language import wl
 from wolframclient.language.expression import WLSymbol
 
 from ._catalog import FUNCTIONS, MODIFICATIONS, PROPERTIES
+from ._native_errors import NativeUnsupportedError
 from ._release import APPLICATION_ROOT_SYMBOL, prepare_application
 
 
 @dataclass(frozen=True)
 class Evaluation:
-    """The kernel value, diagnostics and exact serialized Wolfram expression."""
+    """The backend value and its diagnostics. WXF is present for Wolfram results."""
 
     value: Any
     success: bool
     messages: tuple[str, ...]
     output: tuple[str, ...]
-    wxf: bytes
+    wxf: bytes | None
     failure: str | None
+    backend: str = "wolfram"
 
 
 class CIProError(RuntimeError):
@@ -67,7 +69,7 @@ def _read_evaluation(response) -> Evaluation:
 
 
 class CIPro:
-    """Run the released CIPro code in an activated local Wolfram kernel.
+    """Call CIPro through Wolfram or its source-bound Python equivalents.
 
     Reuse a client for related calls to preserve CIPro's kernel caches and options.
     Closing a client removes its temporary package and session-local datasets.
@@ -81,9 +83,11 @@ class CIPro:
         self,
         kernel: str | os.PathLike[str] | None = None,
         *,
+        backend: str = "wolfram",
         startup_timeout: float = 180,
         evaluation_timeout: float | None = 600,
     ):
+        self.backend = _backend(backend)
         kernel = kernel or os.environ.get("WOLFRAM_KERNEL")
         self._kernel = os.fspath(kernel) if kernel is not None else None
         self._startup_timeout = startup_timeout
@@ -100,7 +104,12 @@ class CIPro:
         self.close()
 
     def start(self):
-        """Start the kernel and verify the released property and modification registries."""
+        """Eagerly start a Wolfram client. Python and auto clients start lazily."""
+        if self.backend != "wolfram":
+            return self
+        return self._start_wolfram()
+
+    def _start_wolfram(self):
         with self._lock:
             if self._session is not None:
                 return self
@@ -173,10 +182,15 @@ class CIPro:
                     self._workspace.cleanup()
                     self._workspace = None
 
-    def evaluate_result(self, expression) -> Evaluation:
+    def evaluate_result(self, expression, *, backend: str | None = None) -> Evaluation:
         """Evaluate a Wolfram expression, retaining messages and print output."""
+        if _backend(self.backend if backend is None else backend) == "python":
+            raise NativeUnsupportedError("Raw Wolfram expressions require the Wolfram backend.")
+        return self._evaluate_wolfram(expression)
+
+    def _evaluate_wolfram(self, expression) -> Evaluation:
         with self._lock:
-            self.start()
+            self._start_wolfram()
             try:
                 response = self._session.evaluate_wrap_future(expression).result(
                     timeout=self._evaluation_timeout,
@@ -191,16 +205,31 @@ class CIPro:
                 self.close()
                 raise KernelUnavailable("The Wolfram kernel stopped responding.") from exc
 
-    def evaluate(self, expression):
+    def evaluate(self, expression, *, backend: str | None = None):
         """Evaluate an expression and raise on a Wolfram failure or message."""
-        return _checked(self.evaluate_result(expression))
+        result = self.evaluate_result(expression) if backend is None else self.evaluate_result(expression, backend=backend)
+        return _checked(result)
 
-    def call_result(self, name: str, /, *args, **options) -> Evaluation:
-        """Invoke an upstream CIPro head and return its value and diagnostics."""
+    def call_result(self, name: str, /, *args, backend: str | None = None, **options) -> Evaluation:
+        """Invoke a CIPro head and return the backend, value and diagnostics."""
         if name not in FUNCTIONS:
             raise ValueError(f"Unknown callable CIPro symbol {name!r}")
+        mode = _backend(self.backend if backend is None else backend)
+        if mode != "wolfram":
+            from ._native import call_native
+
+            try:
+                value = call_native(name, args, options)
+            except NativeUnsupportedError:
+                if mode == "python":
+                    raise
+            else:
+                return Evaluation(value, True, (), (), None, None, "python")
         rules = (wl.Rule(key, value) for key, value in options.items())
-        return self.evaluate_result(_symbol(f"CIPro`{name}")(*args, *rules))
+        expression = _symbol(f"CIPro`{name}")(*args, *rules)
+        if self.backend == "python":
+            return self.evaluate_result(expression, backend="wolfram")
+        return self.evaluate_result(expression)
 
     def call(self, name: str, /, *args, **options):
         """Invoke an upstream CIPro head, returning the kernel value."""
@@ -227,3 +256,9 @@ def _checked(detail: Evaluation):
     if not detail.success:
         raise EvaluationError(detail)
     return detail.value
+
+
+def _backend(value):
+    if value not in ("python", "wolfram", "auto"):
+        raise ValueError("backend must be 'python', 'wolfram', or 'auto'.")
+    return value

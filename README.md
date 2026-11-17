@@ -1,10 +1,10 @@
 # py-CIPro
 
-Python bindings for CIPro v1.0, the Wolfram Language package for complete intersections in products of projective spaces. The bindings send Wolfram expressions to an activated local Wolfram kernel using the Wolfram Client Library for Python. CIPro itself computes the results.
+Python bindings and native equivalents for CIPro v1.0, the Wolfram Language package for complete intersections in products of projective spaces. Choose the original Wolfram kernel interface or compute the supported native domains in Python with SymPy.
 
 ## Installation
 
-Install Python 3.10 or later and an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`. Some upstream cohomology routines use Wolfram’s [legacy Combinatorica package](https://reference.wolfram.com/language/Combinatorica/ref/Compositions.html), which must be available to the kernel.
+Install Python 3.10 or later. The default Wolfram backend uses an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `backend="python"` on `CIPro` for native computation. Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`. Some upstream cohomology routines use Wolfram’s [legacy Combinatorica package](https://reference.wolfram.com/language/Combinatorica/ref/Compositions.html), which must be available to the kernel.
 
 ```sh
 python -m pip install .
@@ -27,6 +27,16 @@ With an activated kernel, `py-cipro-dashboard --kernel` enables live recalculati
 from py_cipro import CIPro
 
 quintic = {"DimPs": [4], "Conf": [[5]]}
+with CIPro(backend="python") as ci:
+    assert ci.property(quintic, "Euler", Format="Short") == -200
+```
+
+Use `backend="auto"` to try supported native operations first and route unavailable operations to Wolfram. Use the default `CIPro()` for the released Wolfram implementation and WXF results.
+
+```python
+from py_cipro import CIPro
+
+quintic = {"DimPs": [4], "Conf": [[5]]}
 
 with CIPro() as ci:
     result = ci.property(quintic, ["CIDim", "CY", "Euler"])
@@ -36,13 +46,13 @@ with CIPro() as ci:
     print(*help_result.output, sep="\n")
 ```
 
-- `ci.call("Name", ...)` and `ci.Name(...)` invoke the same public Wolfram symbol. `ci.functions` lists the available names. `ci.property` and `ci.modify` call `CIProp` and `CIMod` with their native key and format semantics.
+- `ci.call("Name", ...)` and `ci.Name(...)` invoke the same public Wolfram symbol. `ci.functions` lists the available names. `ci.property` and `ci.modify` dispatch to the selected backend with the released `CIProp` and `CIMod` keys.
 - Lists and dictionaries become Wolfram lists and associations. Keyword arguments are Wolfram string-keyed rules such as `Format="Medium"`. Pass explicit `wl.Rule(...)` arguments for other rule types. Python strings are Wolfram strings. Use `wl` or `wlexpr` to build expressions from trusted code, for instance `ci.Data("Cicy3", wlexpr('#["Euler"] == -200 &'))`. Numeric and symbolic results use the Wolfram client's WXF representations, with exact results also available as bytes.
-- `call_result` and `evaluate_result` return the native value, WXF bytes, kernel status, messages and printed output. `call` and `evaluate` raise `EvaluationError` on kernel failures or messages. The exception's `detail` retains diagnostics. Startup diagnostics are available as `ci.startup`.
+- Wolfram `call_result` and `evaluate_result` return the value, WXF bytes, kernel status, messages and printed output. `call` and `evaluate` raise `EvaluationError` on kernel failures or messages. The exception's `detail` retains diagnostics. Startup diagnostics are available as `ci.startup`.
 - One client owns a persistent kernel and a fresh temporary copy of the package data. `SaveData` writes to that session copy by default. To retain a dataset, export it to your chosen path before closing the client. `DeleteData` uses upstream interactive input, and opening notebooks with `CIExample` requires a compatible notebook front end. Check the result diagnostics for these calls when using a headless kernel.
 - Startup and evaluation have time limits. Pass `startup_timeout=` or `evaluation_timeout=` in seconds, or `evaluation_timeout=None` for long-running computations. A timeout closes the kernel and clears its session-local state.
 
-See the [API catalog](docs/api.md) for all exported functions, dispatch keys, and dataset formats. See [manuscript rendering](docs/manuscript.md) to reproduce the PDF using the pinned `docxology/template` engine.
+See the [method concordance](docs/concordance.md) and the [Python](docs/python/api.md) and [Wolfram Language](docs/wolfram/api.md) API guides for all exported functions, dispatch keys, and dataset formats. See [manuscript rendering](docs/manuscript.md) to reproduce the PDF using the pinned `docxology/template` engine.
 
 ## Upstream source and reproduction
 

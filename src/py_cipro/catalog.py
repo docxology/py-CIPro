@@ -5,6 +5,7 @@ from functools import lru_cache
 from hashlib import sha256
 import json
 import re
+from types import MappingProxyType
 
 from ._release import RELEASE_SHA256, RELEASE_TAG, open_release
 
@@ -17,10 +18,10 @@ _RECORD = re.compile(
     r'"Conf"\s*->\s*(?P<matrix>\{\{[0-9\s,{}]+\}\}),\s*'
     r'"Euler"\s*->\s*(?P<euler>-?[0-9]+),\s*'
     r'"H11"\s*->\s*(?P<h11>[0-9]+),\s*"H21"\s*->\s*(?P<h21>[0-9]+),\s*'
-    r'"C"\s*->\s*\{[-0-9\s,{}]+\},\s*"GVBasic"\s*->\s*\{[-0-9\s,{}]*\},\s*'
+    r'"C"\s*->\s*(?P<chern>\{[-0-9\s,{}]+\}),\s*"GVBasic"\s*->\s*(?P<gv>\{[-0-9\s,{}]*\}),\s*'
     r'"Favour"\s*->\s*(?P<favourable>True|False),\s*'
     r'"IsProduct"\s*->\s*(?P<product>True|False),\s*'
-    r'"KahlerPos"\s*->\s*(?:True|False),\s*"IsSchoen"\s*->\s*(?:True|False)\|>'
+    r'"KahlerPos"\s*->\s*(?P<kahler>True|False),\s*"IsSchoen"\s*->\s*(?P<schoen>True|False)\|>'
 )
 _BRACES = str.maketrans("{}", "[]")
 
@@ -66,7 +67,11 @@ class Catalog:
         return self.records[number - 1]
 
 
-def _parse_catalog(text: str) -> Catalog:
+def _immutable(value):
+    return tuple(_immutable(element) for element in value) if isinstance(value, list) else value
+
+
+def _parse_catalog(text: str, *, source_rows: list | None = None) -> Catalog:
     text = text.strip()
     if not text.startswith(_HEADER):
         raise ValueError("Unexpected Cicy3 archive header")
@@ -103,6 +108,20 @@ def _parse_catalog(text: str) -> Catalog:
             configuration=matrix,
             ambient_dimensions=ambient,
         ))
+        if source_rows is not None:
+            source_rows.append(MappingProxyType({
+                "Num": number,
+                "Conf": matrix,
+                "Euler": euler,
+                "H11": h11,
+                "H21": h21,
+                "C": _immutable(json.loads(match["chern"].translate(_BRACES))),
+                "GVBasic": _immutable(json.loads(match["gv"].translate(_BRACES))),
+                "Favour": match["favourable"] == "True",
+                "IsProduct": match["product"] == "True",
+                "KahlerPos": match["kahler"] == "True",
+                "IsSchoen": match["schoen"] == "True",
+            }))
         offset = match.end()
         if offset < len(body):
             if body[offset] != "," or offset + 1 == len(body):
@@ -113,11 +132,22 @@ def _parse_catalog(text: str) -> Catalog:
     return Catalog(tuple(records))
 
 
-@lru_cache(maxsize=1)
-def get_catalog() -> Catalog:
-    """Load and validate the bundled textual threefold catalog."""
+def _read_member() -> str:
     with open_release() as package:
         data = package.read(MEMBER)
     if sha256(data).hexdigest() != MEMBER_SHA256:
         raise ValueError("Cicy3 member does not match its recorded SHA-256")
-    return _parse_catalog(data.decode("ascii"))
+    return data.decode("ascii")
+
+
+@lru_cache(maxsize=1)
+def get_catalog() -> Catalog:
+    """Load and validate the bundled textual threefold catalog."""
+    return _parse_catalog(_read_member())
+
+
+@lru_cache(maxsize=1)
+def _cicy3_source_rows() -> tuple:
+    rows = []
+    _parse_catalog(_read_member(), source_rows=rows)
+    return tuple(rows)

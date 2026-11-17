@@ -4,6 +4,7 @@ from wolframclient.language import wl, wlexpr
 
 from ._catalog import FUNCTIONS, MODIFICATIONS, PROPERTIES
 from ._client import CIPro, CIProError, Evaluation, EvaluationError, KernelUnavailable
+from ._native_errors import NativeUnsupportedError
 from ._release import RELEASE_SHA256, RELEASE_TAG
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "FUNCTIONS",
     "KernelUnavailable",
     "MODIFICATIONS",
+    "NativeUnsupportedError",
     "PROPERTIES",
     "RELEASE_SHA256",
     "RELEASE_TAG",
