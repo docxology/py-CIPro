@@ -1,13 +1,14 @@
 paper:
-  title: "py-CIPro: A Python atlas for complete-intersection Calabi–Yau geometry"
+  title: "py-CIPro: Exact computation and an atlas of complete-intersection Calabi–Yau threefolds"
   date: "2026-11-17"
 authors:
   - name: "py-CIPro contributors"
 keywords:
   - complete intersections
   - Calabi–Yau threefolds
-  - Hodge numbers
-  - Wolfram Language
+  - Chern classes
+  - line bundle cohomology
+  - scientific software
   - reproducible research
 metadata:
   language: en

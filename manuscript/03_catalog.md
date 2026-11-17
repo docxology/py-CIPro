@@ -1,34 +1,31 @@
-# What is in the archived catalog?
+# An atlas of archived CICY presentations {#sec:catalog}
 
-The atlas reads the plain-text Wolfram data member `CIProData/Cicy3` of CIPro
-v1.0. It checks the release archive digest and parses structured records
-without evaluating Wolfram source. Each row carries the upstream ID,
-configuration, Hodge values, Euler characteristic, and the source’s
-`Favour` and `IsProduct` flags. The ambient dimensions used to display each
-configuration follow from its Calabi–Yau row sums, $n_i=\sum_a q_{ia}-1$.
-These are derived dimensions for this data model. For a general complete
-intersection the ambient dimensions must be supplied separately. [@anderson-cipro; @cipro-release]
+## The population and its encodings
 
-The 7,890 catalog IDs are contiguous from 1 to 7,890. Counting records by
-the pair $(h^{1,1},h^{2,1})$ gives 266 pairs, with $(9,21)$ the most frequent
-at 354 records, followed by $(10,20)$ at 292. The 22 product rows all have
-the stored placeholder pair $(0,0)$. The remaining rows give 265 Hodge
-pairs, the same count reported in the classical Hodge-number study. Catalog
-IDs index configurations, and a pair can collect multiple distinct
-configurations. Neither provides a count of topological types. [@candelas-cicy; @green-hubsch; @green-hodge]
+The archive is the textual `CIProData/Cicy3` member of CIPro {{UPSTREAM_TAG}}. The loader checks both the release ZIP and member digests and parses the data without evaluating Wolfram source code. It validates the ID sequence, matrix shape, inferred ambient dimensions, and the stored Euler relation. The archive carries one row per published presentation, with the matrix and IDs alongside `H11`, `H21`, `Euler`, `Favour`, and `IsProduct` [@cipro-release; @candelas-cicy]. Its display dimensions $n_i=\sum_aq_{ia}-1$ are inferred by the Calabi–Yau row equation in [@prop:adjunction]. This makes a row-sum equality calculated on those inferred dimensions an internal consistency check. A general user-supplied configuration needs its ambient dimensions as separate input.
 
-The observed Euler range is $[-200,0]$ across 70 values. The median is $-40$,
-the mode is $-32$ (613 records), and 52 rows have zero Euler characteristic.
-The row-wise equality $\chi=2(h^{1,1}-h^{2,1})$ holds for all stored values.
-This check tests a relation within the archived data and does not recompute
-Chern classes. The 4,874 rows flagged as favorable reflect the chosen
-configuration in this release. Favorability of a presentation and
-alternative favorable presentations are different questions. [@cipro-release; @anderson-fibrations]
+::: {.definition #def:atlas_population title="Units counted by the atlas"}
+A **presentation count** weights every released configuration ID once. A **non-product Hodge-pair count** weights every distinct stored pair $(h^{1,1},h^{2,1})$ once after omitting the rows flagged `IsProduct`. A pair's **multiplicity** is the number of non-product IDs with that pair.
+:::
 
-![Recorded Hodge pairs and Euler frequencies in CIPro v1.0 Cicy3. Left: one point per stored Hodge pair, colored by the logarithmically scaled number of configurations with that pair. The gray cross marks the stored product placeholder. Right: exact count at each recorded Euler value. Quintic and bicubic records are labeled.](figures/cicy3-atlas.png){width=100%}
+The full release has {{CICY3_RECORDS}} rows. The {{CICY3_PRODUCT_ROWS}} product rows carry the stored placeholder $(0,0)$ and contribute $\chi=0$ to the presentation-level Euler distribution. Beyond the placeholder, {{CICY3_NONPRODUCT_ROWS}} rows contribute {{NONPRODUCT_HODGE_PAIR_COUNT}} non-product pairs. The count agrees with the historical Hodge-number enumeration [@green-hodge]. An individual pair is a coarse invariant. Configurations sharing it can have different intersection forms, Chern contractions, or other geometric data.
 
-The dashboard uses the same parsed data. Moving from a point to its
-constituent records shows how several configurations can share one pair.
-The Euler view groups all matching configurations by the exact stored value.
-The record inspector exposes the input matrix and flags so an analyst can
-trace an aggregate back to the archived record.
+## Hodge and Euler distributions
+
+[@fig:cicy3_atlas] presents the two weighting schemes in [@def:atlas_population]. Among all presentations, the archive has {{EULER_VALUE_COUNT}} distinct Euler values, from ${{EULER_MIN}}$ to ${{EULER_MAX}}$. The median is ${{EULER_MEDIAN}}$, and the mode ${{EULER_MODE}}$ appears in {{EULER_MODE_COUNT}} records. Of the {{EULER_ZERO_COUNT}} zero records, {{NONPRODUCT_ZERO_EULER}} are non-products. The equality in [@eq:hodge_euler] holds arithmetically on {{EULER_IDENTITY_CHECKS}} records, including the placeholder rows. This relation tests mutual consistency of the stored fields. As a separate check, the degree matrices give {{CICY3_TRUNCATED_RING_EULER_MATCHES}} exact Euler matches by [@eq:archive_euler]. This calculation also covers the product rows and verifies the scalar Euler number, while recovering genuine Hodge data for those products would require separate calculations.
+
+![Hodge coordinates and the discrete Euler distribution. (A) Each point is one of {{NONPRODUCT_HODGE_PAIR_COUNT}} recorded pairs among {{CICY3_NONPRODUCT_ROWS}} non-product presentations. Color and marker area give the record multiplicity on a logarithmic scale. The bicubic and quintic identify the independently computed fixtures in [@tbl:geometry_fixtures]. (B) Each bar counts one exact stored Euler value across all {{CICY3_RECORDS}} presentations. The dashed line marks the median. Products contribute only to the zero bar. The archive is treated as a finite census, so the counts have no sampling error bars.](../output/figures/cicy3-atlas.png){#fig:cicy3_atlas width=100%}
+
+Multiplicity changes the picture. {{SINGLETON_PAIR_COUNT}} of the non-product pairs appear exactly once. The ten largest pair counts cover {{TOP10_PAIR_RECORDS}} presentations, and {{PAIRS_TO_HALF}} pairs suffice to account for at least half the records when ordered by decreasing count. [@fig:cicy3_multiplicity] shows both the cumulative concentration and the multiplicity distribution. When using this release to construct a benchmark, sampling presentations and sampling distinct pairs answer different questions. A presentation-weighted average will emphasize common pairs. Reporting both denominators makes the effect visible.
+
+![Concentration of recorded Hodge pairs in the non-product catalog. The cumulative curve ranks pairs by decreasing presentation multiplicity and shows the resulting share of {{CICY3_NONPRODUCT_ROWS}} records against a dashed equal-weight reference. The distribution panel bins the {{NONPRODUCT_HODGE_PAIR_COUNT}} pairs by how many times they occur. Each pair contributes once to that histogram. The figure excludes the product placeholder and uses exact finite-catalog counts.](../output/figures/cicy3-multiplicity.png){#fig:cicy3_multiplicity width=100%}
+
+## Configuration shape and favorability
+
+Write matrix shape as $(m,r)$, with one row per ambient factor and one column per equation. [@fig:cicy3_structure] compares this two-dimensional shape distribution with the frequency of the archive's `Favour` flag by ambient factor count. The modal shape is $({{MODAL_AMBIENT_FACTORS}},{{MODAL_CODIMENSION}})$ with {{MODAL_SHAPE_RECORDS}} records. The archive marks {{CICY3_FAVOURABLE_ROWS}} rows favorable, accounting for {{FAVOURABLE_NONPRODUCT_PERCENT}} of the non-product records. The fractions in the figure use the entire non-product subset in each group, including the flagged and unflagged presentations.
+
+Favorability describes how divisor classes on $X$ descend from the ambient product in a given presentation. A geometry can have a different, favorable presentation. Favorable generation of divisor classes also leaves separate questions about the Kähler cone, such as whether the positive span of inherited classes describes the full cone. In a workflow that parameterizes Chern or intersection data by $H_i$, reporting the presentation carries mathematical information [@anderson-fibrations; @gray-wang-quotients].
+
+![Configuration shape and released favorability flags. The shape panel counts all {{CICY3_RECORDS}} presentations by number of ambient factors and number of defining equations. Color shows the cell count on a logarithmic scale. The flag panel groups {{CICY3_NONPRODUCT_ROWS}} non-product presentations by ambient factor count and displays the fraction flagged favorable in each group. The group counts give the denominators. Light gray shape cells denote absence from this release.](../output/figures/cicy3-structure.png){#fig:cicy3_structure width=100%}
+
+The dashboard follows the same ID-level interpretation. A selected record exposes its degree matrix, dimensions, and flags, so a user can move from an aggregate to the exact geometry input. Aggregate statistics here are scoped to the released threefold presentations. Separate catalogs exist for CICY fourfolds, alternative threefold presentations, symmetry actions, and model-building data [@anderson-cipro; @gray-cicy4-classification; @gray-cicy4-proceedings; @gray-cicy4-invariants; @candelas-small-hodge].

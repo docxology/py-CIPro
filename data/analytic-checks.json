@@ -2,6 +2,14 @@
   "method": "Ambient truncated integer polynomial ring, adjunction and weak Lefschetz",
   "dataset": "Cicy3",
   "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
+  "configuration_euler": {
+    "method": "Top ambient coefficient of (p3(TA) - p3(N)) [X] / 3",
+    "groups": {
+      "all": 7890,
+      "nonproduct": 7868,
+      "product": 22
+    }
+  },
   "fixtures": {
     "quintic": {
       "record": 7890,

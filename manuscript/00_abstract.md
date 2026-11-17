@@ -1,14 +1,3 @@
-# Abstract
+# Abstract {.unnumbered}
 
-py-CIPro connects Python to CIPro, the Wolfram Language library for geometry
-in products of projective spaces [@anderson-cipro]. It provides
-native Python calculation in documented domains and a dashboard with an
-interactive `Cicy3` atlas, a method lab, and a Python, Wolfram, or Auto
-backend selector. The dashboard can recompute selected properties from
-configuration data and display them alongside archived values.
-We derive explicit Chern and Hodge checks for the quintic and bicubic,
-and audit 7,890 archived configurations. The archive contains 266 recorded
-Hodge pairs, including the sentinel pair $(0,0)$ attached to 22 product
-records. All rows satisfy the recorded identity $\chi=2(h^{1,1}-h^{2,1})$.
-The archival audit, analytic checks, and supported Python calculations
-can run offline. Requests routed to Wolfram use an activated kernel.
+py-CIPro brings the released CIPro geometry package to Python through a native exact-arithmetic implementation and a separate Wolfram Language execution path. A loopback dashboard connects these methods to a browsable atlas and an editable method lab. We treat the release as both executable software and a finite catalog. We audit {{CICY3_RECORDS}} archived presentations, distinguish the {{NONPRODUCT_HODGE_PAIR_COUNT}} Hodge pairs on non-product rows from product placeholders, and measure how presentations concentrate on those pairs. Independent ambient intersection arithmetic reproduces the stored Euler characteristic for all {{CICY3_TRUNCATED_RING_EULER_MATCHES}} matrices, including {{QUINTIC_EULER}} for the quintic and {{BICUBIC_EULER}} for the bicubic. An exact line-bundle sweep checks native dimensions against a separate quintic section count, Serre duality, and Riemann–Roch. The resulting evidence distinguishes release-byte integrity, arithmetic consistency of the stored records, native execution, and mathematical agreement on specified examples. Both the analyses and the manuscript build use pinned inputs and can run without a Wolfram kernel once dependencies are installed.

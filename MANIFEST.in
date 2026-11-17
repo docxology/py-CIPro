@@ -2,3 +2,4 @@ recursive-include docs *.md
 recursive-include manuscript *.md *.yaml *.bib *.png
 recursive-include data *.json
 include scripts/build_concordance.py scripts/check_intersections.py scripts/render_figures.py
+include scripts/manuscript_analysis.py scripts/manuscript_variables.py scripts/z_generate_manuscript_variables.py

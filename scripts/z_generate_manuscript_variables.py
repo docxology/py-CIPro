@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Prepare the py-CIPro manuscript for docxology/template Stage 03."""
+
+from dataclasses import dataclass
+import json
+from pathlib import Path
+import re
+import sys
+
+from infrastructure.documentation.generated_figure_registry import publish_generated_figures
+from infrastructure.rendering.manuscript_injection import (
+    substitute_manuscript_text,
+    write_resolved_manuscript_tree,
+)
+
+from manuscript_variables import build_variables, validate_tokens
+
+
+@dataclass(frozen=True)
+class Figure:
+    label: str
+    filename: str
+    caption: str
+    alt_text: str
+    generated_by: str = "scripts/render_figures.py --suite"
+
+
+def figures_from_source(root, variables):
+    descriptions = {
+        "fig:cicy3_atlas": "Hodge-pair scatter with multiplicities and a frequency chart of Euler characteristics.",
+        "fig:cicy3_structure": "Configuration matrix shape heatmap beside favorability fractions by ambient rank.",
+        "fig:cicy3_multiplicity": "Rank concentration of Hodge-pair frequencies and pair counts by multiplicity.",
+        "fig:line_bundle_cohomology": "Quintic line-bundle dimensions and supported and unsupported charge regions of the bicubic.",
+    }
+    pattern = re.compile(
+        r"^!\[(.+)\]\(\.\./output/figures/([a-z0-9-]+\.png)\)\{#(fig:[a-z0-9_]+)\b[^}]*\}",
+        re.MULTILINE,
+    )
+    specs = []
+    for source in sorted((root / "manuscript").glob("*.md")):
+        text, _ = substitute_manuscript_text(source.read_text(encoding="utf-8"), variables)
+        for caption, filename, label in pattern.findall(text):
+            specs.append(Figure(label, filename, caption, descriptions[label]))
+    if len(specs) != len(descriptions) or {spec.label for spec in specs} != descriptions.keys():
+        raise ValueError("Manuscript figure captions do not match the generated figure set")
+    return specs
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+    variables, evidence = build_variables(root)
+    validate_tokens(root, variables)
+    specs = figures_from_source(root, variables)
+    publish_generated_figures(
+        root / "output" / "figures",
+        specs,
+        [root / "manuscript" / "figures" / spec.filename for spec in specs],
+        schema_version="py-cipro-figures/v1",
+    )
+    data = root / "output" / "data"
+    data.mkdir(parents=True, exist_ok=True)
+    for name, payload in (("manuscript_variables.json", variables), ("software_and_analysis.json", evidence)):
+        destination = data / name
+        destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_resolved_manuscript_tree(root, variables)
+    print(f"Hydrated {len(variables)} manuscript variables and staged {len(specs)} figures.", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

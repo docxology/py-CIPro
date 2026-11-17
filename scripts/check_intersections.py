@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Compute exact Chern and intersection fixtures for the quintic and bicubic."""
+"""Independently recompute the archive's Euler values and two intersection fixtures."""
 
 import argparse
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, product
 import json
 from math import comb
 from pathlib import Path
@@ -84,6 +84,57 @@ def analytic_fixture(record):
     }
 
 
+def configuration_euler(record):
+    """Apply the CY-threefold identity 3c3 = p3(TA) - p3(N) in the ambient ring."""
+    dimensions = record.ambient_dimensions
+    columns = [
+        tuple((index, degree) for index, degree in enumerate(column) if degree)
+        for column in zip(*record.configuration)
+    ]
+    fundamental = {(0,) * len(dimensions): 1}
+    for column in sorted(columns, key=len):
+        updated = {}
+        for powers, coeff in fundamental.items():
+            for index, degree in column:
+                if powers[index] < dimensions[index]:
+                    raised = powers[:index] + (powers[index] + 1,) + powers[index + 1:]
+                    updated[raised] = updated.get(raised, 0) + coeff * degree
+        fundamental = updated
+
+    def integrate_cube(indices):
+        complement = list(dimensions)
+        for index in indices:
+            complement[index] -= 1
+        return fundamental.get(tuple(complement), 0)
+
+    ambient = sum((n + 1) * integrate_cube((i, i, i)) for i, n in enumerate(dimensions))
+    normal = sum(
+        a * b * c * integrate_cube((i, j, k))
+        for column in columns
+        for (i, a), (j, b), (k, c) in product(column, repeat=3)
+    )
+    euler, remainder = divmod(ambient - normal, 3)
+    if remainder:
+        raise ValueError(f"Nonintegral Euler characteristic for record {record.id}")
+    return euler
+
+
+def check_catalog_euler(catalog):
+    checks = {"all": 0, "nonproduct": 0, "product": 0}
+    for record in catalog.records:
+        euler = configuration_euler(record)
+        if euler != record.euler:
+            raise ValueError(
+                f"Euler mismatch for record {record.id}: computed {euler}, archive {record.euler}"
+            )
+        checks["all"] += 1
+        checks["product" if record.product else "nonproduct"] += 1
+    return {
+        "method": "Top ambient coefficient of (p3(TA) - p3(N)) [X] / 3",
+        "groups": checks,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("data/analytic-checks.json"))
@@ -93,6 +144,7 @@ def main():
         "method": "Ambient truncated integer polynomial ring, adjunction and weak Lefschetz",
         "dataset": catalog.dataset,
         "dataset_sha256": catalog.member_sha256,
+        "configuration_euler": check_catalog_euler(catalog),
         "fixtures": {
             "quintic": analytic_fixture(catalog.record(7890)),
             "bicubic": analytic_fixture(catalog.record(7884)),

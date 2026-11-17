@@ -8,6 +8,7 @@ from shutil import copyfileobj
 from zipfile import ZipFile
 
 RELEASE_TAG = "v1.0"
+RELEASE_COMMIT = "1533b83cf87c4741e60b4d3233745439a4eee094"
 RELEASE_SHA256 = "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53"
 APPLICATION_ROOT_SYMBOL = "CIPro`Private`$PyCIProApplicationRoot"
 
