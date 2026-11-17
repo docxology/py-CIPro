@@ -94,17 +94,21 @@ class DashboardTests(unittest.TestCase):
         status, _, data = self.request("GET", "/api/research/provenance")
         self.assertEqual(status, 200)
         provenance = json.loads(data)
-        self.assertGreater(provenance["manuscript_pages"], 0)
+        self.assertEqual(provenance["manuscript_pages"], 19)
         self.assertEqual(provenance["archive_sha256"], self.server.catalog.sha256)
         self.assertEqual(provenance["dataset_sha256"], self.server.catalog.member_sha256)
-        self.assertEqual(len(provenance["figures"]), 4)
+        self.assertEqual(set(provenance["figures"]), {
+            "chern-audit", "cicy3-atlas", "cicy3-structure", "cicy3-multiplicity",
+            "atlas-comparison", "line-bundle-cohomology", "bicubic-exact",
+        })
+        self.assertEqual(len(provenance["assets_sha256"]), 12)
         for name, digest in provenance["assets_sha256"].items():
-            route = f"/research/{name}" if name.endswith(".pdf") else "/api/research"
+            route = "/api/research" if name == "manuscript-analysis.json" else f"/research/{name}"
             with self.subTest(route=route):
                 status, headers, body = self.request("GET", route)
                 self.assertEqual(status, 200)
                 self.assertEqual(sha256(body).hexdigest(), digest)
-                if route.startswith("/research/"):
+                if name.endswith(".pdf"):
                     self.assertTrue(body.startswith(b"%PDF-"))
                     self.assertIn(("Content-Type", "application/pdf"), headers)
                     self.assertIn(("Content-Disposition", f'inline; filename="{name}"'), headers)
@@ -112,6 +116,83 @@ class DashboardTests(unittest.TestCase):
                     self.assertEqual((head_status, head_body), (200, b""))
                     self.assertIn(("Content-Length", str(len(body))), head_headers)
         self.assertEqual(self.request("GET", "/research/other.pdf")[0], 404)
+
+    def test_extended_studies_use_exact_manuscript_data_and_catalogue_cohorts(self):
+        status, _, body = self.request("GET", "/api/research/studies")
+        self.assertEqual(status, 200)
+        studies = json.loads(body)
+        self.assertEqual(set(studies), {"chern-audit", "atlas-comparison", "bicubic-exact"})
+        for name, study in studies.items():
+            status, _, body = self.request("GET", f"/research/{name}.json")
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(body), study)
+
+        records = self.server.catalog.records
+        expected = {
+            "figure=chern-audit&volume=270&pairing=144&modal=1": [
+                row["id"] for row in studies["chern-audit"]["rows"]
+                if not row["product"] and row["hodge"] == [9, 21]
+                and row["volume"] == 270 and row["c2_polarized"] == 144
+            ],
+            "figure=atlas-comparison&euler=-58": [
+                row.id for row in records if not row.product and row.euler <= -58
+            ],
+            "figure=atlas-comparison&factors=7&favourable=1": [
+                row.id for row in records if not row.product and row.favourable and len(row.configuration) == 7
+            ],
+            "figure=atlas-comparison": [row.id for row in records if not row.product],
+            "figure=bicubic-exact": [7884],
+        }
+        for query, ids in expected.items():
+            with self.subTest(query=query):
+                status, _, body = self.request("GET", f"/api/research/records?{query}")
+                self.assertEqual(status, 200)
+                result = json.loads(body)
+                self.assertEqual(result["ids"], ids)
+                self.assertEqual(result["matched"], len(ids))
+        self.assertIn(1258, expected["figure=chern-audit&volume=270&pairing=144&modal=1"])
+        for query in ("figure=chern-audit&volume=270", "figure=atlas-comparison&factors=1&euler=0",
+                      "figure=bicubic-exact&geometry=quintic"):
+            self.assertEqual(self.request("GET", f"/api/research/records?{query}")[0], 400)
+
+    def test_extended_studies_rerun_in_python(self):
+        route = "/api/research/rerun"
+        with patch.object(self.server.kernel, "call_result") as wolfram:
+            for payload, expected in (
+                ({"figure": "chern-audit", "record_id": 1258}, {
+                    "volume": 270, "c2_polarized": 144, "index": 57,
+                }),
+                ({"figure": "atlas-comparison", "euler": -58}, {
+                    "euler": -58, "record_count_le": 1516, "pair_count_le": 146,
+                }),
+                ({"figure": "atlas-comparison", "factors": 7}, {"ambient_factors": 7}),
+                ({"figure": "atlas-comparison"}, {
+                    "median_euler": {"presentation": -40, "equal_pair": -62},
+                }),
+                ({"figure": "bicubic-exact", "a": 3, "b": -3}, {
+                    "h": [0, 7, 7, 0], "generic_h": [0, 0, 0, 0], "index": 0,
+                    "rank_h2": 3, "paired_excess": 7,
+                }),
+            ):
+                with self.subTest(payload=payload):
+                    status, _, body = self.post(payload, route, Origin=self.origin)
+                    self.assertEqual(status, 200, body)
+                    response = json.loads(body)
+                    self.assertEqual(response["backend"], "python")
+                    self.assertTrue(response["matches_manuscript"])
+                    self.assertEqual(response["result"], response["manuscript"])
+                    self.assertEqual({key: response["result"][key] for key in expected}, expected)
+            wolfram.assert_not_called()
+        for payload in (
+            {"figure": "chern-audit", "record_id": True},
+            {"figure": "chern-audit", "record_id": 7891},
+            {"figure": "atlas-comparison", "euler": -999},
+            {"figure": "atlas-comparison", "factors": 7, "backend": "wolfram"},
+            {"figure": "bicubic-exact", "a": 9, "b": 0},
+            {"figure": "bicubic-exact", "a": 3, "b": -3, "matrix": []},
+        ):
+            self.assertEqual(self.post(payload, route)[0], 400, payload)
+        self.assertEqual(self.post({"figure": "atlas-comparison"}, route, Origin="https://example.invalid")[0], 403)
 
     def test_research_mark_selection_returns_exact_archive_ids(self):
         records = self.server.catalog.records

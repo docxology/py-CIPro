@@ -113,15 +113,14 @@ are registered in `output/figures/figure_registry.json`.
 
 ## Refresh the dashboard's manuscript assets
 
-The installed dashboard includes the manuscript and four interactive
-figures from its release. The expanded manuscript adds three standalone
-analyses. To refresh the dashboard bundle after a verified render, collect
-these files in an export directory and generate `SHA256SUMS` there with
-relative paths.
+The installed dashboard includes the revised manuscript and seven
+interactive figures. To refresh the dashboard bundle after a verified render,
+collect these files in an export directory and generate `SHA256SUMS` there
+with relative paths.
 
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
-- `figures/` contains the four named PDF exports and `figure_registry.json`.
-- `data/` contains `manuscript-analysis.json` and `software_and_analysis.json`.
+- `figures/` contains all seven named PDF exports and `figure_registry.json`.
+- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, and `software_and_analysis.json`.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT

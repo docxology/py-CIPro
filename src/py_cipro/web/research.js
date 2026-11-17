@@ -31,7 +31,7 @@ async function request(path, options) {
   return response.json();
 }
 
-function section(root, id, title, caption, filename) {
+function section(root, id, title, caption, filename, hasData = false) {
   const figure = node("figure", "", "card research-figure");
   figure.id = `research-${id}`;
   figure.setAttribute("aria-labelledby", `${figure.id}-heading`);
@@ -42,6 +42,11 @@ function section(root, id, title, caption, filename) {
   const download = link("Download vector PDF", `/research/${filename}.pdf`, "text-button");
   download.download = `${filename}.pdf`;
   actions.append(download);
+  if (hasData) {
+    const data = link("Download data", `/research/${filename}.json`, "text-button");
+    data.download = `${filename}.json`;
+    actions.append(data);
+  }
   const panels = node("div", "", "research-panels");
   header.append(heading, actions);
   figure.append(header, panels, node("figcaption", caption, "research-caption"));
@@ -177,11 +182,13 @@ function recordAction(panel, select, lookup, openRecords, singular = false) {
     try {
       const params = new URLSearchParams(query);
       const result = await request(`/api/research/records?${params}`);
-      if (result.ids.length === 0) {
+      if (String(new URLSearchParams(lookup(select()).query)) !== String(params)) {
+        status.textContent = "Selection changed. Open source records for the current selection.";
+      } else if (result.ids.length === 0) {
         status.textContent = "No archive records match this selection.";
       } else {
         await openRecords(result.ids, result.label || title, params);
-        status.textContent = `Opened ${count.format(result.matched)} archive ${singular ? "record" : "records"}.`;
+        status.textContent = `Opened ${count.format(result.matched)} archive ${result.matched === 1 ? "record" : "records"}.`;
       }
     } catch (error) {
       status.textContent = error.message;
@@ -460,7 +467,7 @@ function bundleValues(dimensions, index) {
   return `${values} · index χ = ${count.format(index)}`;
 }
 
-function runAction(panel, selection, payloadFor) {
+function runAction(panel, selection, payloadFor, describe = run => [bundleValues(run.dimensions, run.index)]) {
   const button = node("button", "Rerun in Python", "button run-button");
   button.type = "button";
   const actions = node("div", "", "research-actions");
@@ -479,14 +486,14 @@ function runAction(panel, selection, payloadFor) {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       if (source !== selection()) {
-        result.textContent = "Selection changed. Rerun the current charge to see its result.";
+        result.textContent = "Selection changed. Rerun the current selection to see its result.";
         return;
       }
       const heading = run.matches_manuscript ? "Python result matches the manuscript" :
         "Python result differs from the manuscript";
       result.replaceChildren(
         node("strong", heading),
-        node("p", bundleValues(run.dimensions, run.index)),
+        ...describe(run).map(line => node("p", line)),
       );
       if (run.reason) result.append(node("p", run.reason));
       if (!run.matches_manuscript) result.classList.add("error");
@@ -613,11 +620,375 @@ function cohomology(root, data, openRecords) {
   }), openRecords, true);
 }
 
+function chernPoints(records) {
+  const points = new Map();
+  for (const row of records) {
+    const key = `${row.volume},${row.c2_polarized}`;
+    if (!points.has(key)) points.set(key, { key, volume: row.volume, pairing: row.c2_polarized, records: [] });
+    points.get(key).records.push(row);
+  }
+  return [...points.values()].sort((a, b) => a.volume - b.volume || a.pairing - b.pairing);
+}
+
+function chernPanel(parent, rows, summary, modal, openRecords) {
+  const scope = modal ? "modal" : "population";
+  const pair = summary.modal_hodge.join(", ");
+  const view = modal
+    ? panel(parent, `Hodge pair (${pair})`, "The outlined points mark the lowest and highest polarized indices in this Hodge group.")
+    : panel(parent, "Non-product archive", "Select an exact degree and Chern pairing, then choose an archive record to recalculate.");
+  const points = chernPoints(rows);
+  const xs = points.map(row => row.volume);
+  const ys = points.map(row => row.pairing);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = 25 * Math.floor((Math.min(...ys) - 12) / 25);
+  const yMax = 25 * Math.ceil((Math.max(...ys) + 12) / 25);
+  const xTicks = (modal ? [500, 1000, 1500, 2000] : [5, 10, 50, 100, 500, 1000, 4000])
+    .filter(value => value >= xMin && value <= xMax);
+  const yTicks = Array.from({ length: (yMax - yMin) / 50 + 1 }, (_, i) => yMin + i * 50);
+  const chart = graph(view.graph, `Polarized degree and second Chern pairing in the ${modal ? "modal Hodge group" : "non-product catalogue"}`,
+    [modal ? xMin * .82 : xMin * .85, xMax * 1.08, yMin, yMax], {
+      xTicks, xFormat: count.format, yTicks,
+      xScale: modal ? undefined : Math.log10,
+      xLabel: `Polarized degree V${modal ? "" : " (log scale)"}`,
+      yLabel: "Second Chern pairing T", verticalGrid: true,
+    });
+  const featured = new Set([summary.modal_low_id, summary.modal_high_id]);
+  const label = row => `V = ${count.format(row.volume)} · T = ${count.format(row.pairing)} · ${count.format(row.records.length)} ${row.records.length === 1 ? "record" : "records"}`;
+  const recordLabel = row => `#${row.id} · χ(L) = ${count.format(row.index)}`;
+  const record = field(`research-chern-${scope}-record`, "Record for Python rerun", [],
+    row => row.id, recordLabel);
+  const initial = rows.find(row => row.id === summary.modal_low_id);
+  let clear;
+  const selected = choices(view, chart, points, {
+    id: `research-chern-${scope}-point`,
+    label: "Polarized degree and Chern pairing",
+    value: row => row.key, option: label, initial: `${initial.volume},${initial.c2_polarized}`,
+    summary: row => label(row),
+    extra: [record.wrapper],
+    changed: row => {
+      record.select.replaceChildren(...row.records.map(source => new Option(recordLabel(source), source.id)));
+      if (row.records.some(source => source.id === initial.id)) record.select.value = initial.id;
+      clear?.();
+    },
+  });
+  const maximum = Math.max(...points.map(row => row.records.length));
+  for (const row of points) {
+    const highlight = modal && row.records.some(source => featured.has(source.id));
+    const weight = Math.log1p(row.records.length) / Math.log1p(maximum);
+    const mark = svgNode("circle", {
+      cx: chart.x(row.volume), cy: chart.y(row.pairing),
+      r: (modal ? 3.1 : 2.1) + 4.5 * weight,
+      class: highlight ? "research-dot research-featured" : "research-dot",
+      opacity: highlight ? 1 : .35 + .65 * weight,
+    });
+    point(chart, mark, row.key, label(row), selected.choose);
+  }
+  selected.initialize();
+  legend(view.graph, modal ? [["dot", "Records per point"], ["featured", "Index extremes"]]
+    : [["dot", "Larger marks represent more archive records"]]);
+  const currentRecord = () => selected.current().records.find(row => row.id === Number(record.select.value));
+  record.select.addEventListener("change", () => clear?.());
+  clear = runAction(view, currentRecord, row => ({ figure: "chern-audit", record_id: row.id }), run => {
+    const result = run.result;
+    return [
+      `Record #${run.record_id} · V = ${count.format(result.volume)} · T = ${count.format(result.c2_polarized)} · χ(L) = ${count.format(result.index)}`,
+      `Ordered ambient pairings · (${result.c2.map(count.format).join(", ")})`,
+    ];
+  });
+  recordAction(view, selected.current, row => ({
+    query: { figure: "chern-audit", volume: row.volume, pairing: row.pairing, ...(modal ? { modal: 1 } : {}) },
+    title: `V = ${row.volume} · T = ${row.pairing}${modal ? ` · Hodge pair (${pair})` : ""}`,
+  }), openRecords);
+}
+
+function chernAudit(root, data, openRecords) {
+  const { summary, rows } = data;
+  const population = rows.filter(row => !row.product);
+  const pair = summary.modal_hodge.join(",");
+  const modal = population.filter(row => row.hodge.join(",") === pair);
+  const figure = section(root, "chern-audit", "Polarized degrees and Chern pairings",
+    `The exact audit recovered ${count.format(summary.ambient_pairings)} ordered second Chern pairings from ` +
+    `${count.format(summary.records)} archive records. The plotted points group non-product records by V and T. ` +
+    `The modal Hodge group contains ${count.format(summary.modal_signatures)} distinct points.`, "chern-audit", true);
+  chernPanel(figure, population, summary, false, openRecords);
+  chernPanel(figure, modal, summary, true, openRecords);
+}
+
+const precisePercent = new Intl.NumberFormat("en-US", {
+  style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
+const percentagePoints = new Intl.NumberFormat("en-US", {
+  signDisplay: "exceptZero", minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
+const ratio = ([numerator, denominator]) => numerator / denominator;
+const pp = value => `${percentagePoints.format(100 * value)} pp`;
+const weightingLegend = [["dot", "Each presentation equally"], ["diamond", "Each Hodge pair equally"]];
+
+function pairedPoints(chart, rows, xFor, measures, control, label, staircase = false) {
+  for (const [index, measure] of measures.entries()) {
+    const curve = [];
+    for (const row of rows) {
+      const x = xFor(row), y = measure(row);
+      if (staircase) curve.push([x, curve.at(-1)?.[1] ?? 0]);
+      curve.push([x, y]);
+    }
+    drawPath(chart, curve, row => row[0], row => row[1],
+      index === 0 ? "research-trace-line" : "research-weighted-line");
+    for (const row of rows) {
+      const x = chart.x(xFor(row)), y = chart.y(measure(row));
+      const mark = svgNode("g");
+      mark.append(svgNode("circle", { cx: x, cy: y, r: 7, class: "research-hit" }));
+      if (index === 0) mark.append(svgNode("circle", { cx: x, cy: y, r: 3.3, class: "research-dot" }));
+      else mark.append(svgNode("path", { d: `M ${x} ${y - 4} l 4 4 -4 4 -4 -4 Z`, class: "research-weighted-dot" }));
+      point(chart, mark, xFor(row), label(row), control.choose);
+    }
+  }
+}
+
+function atlasEulerPanel(parent, data, openRecords) {
+  const view = panel(parent, "Cumulative Euler distributions", "Select an Euler threshold to inspect all non-product configurations at or below it.");
+  const rows = data.euler_cdf;
+  const first = rows[0].euler, last = rows.at(-1).euler;
+  const presentation = row => row.record_count_le / data.population.non_product_presentations;
+  const pair = row => row.pair_count_le / data.population.distinct_non_product_hodge_pairs;
+  const chart = graph(view.graph, "Two empirical cumulative distributions of Euler characteristic",
+    [first - 5, last + 5, 0, 1.04], {
+      xTicks: [first, -150, -100, -50, last], yTicks: [0, .25, .5, .75, 1],
+      yFormat: percent.format, xLabel: "Euler characteristic χ", yLabel: "Cumulative share", verticalGrid: true,
+    });
+  const describe = row => `χ ≤ ${row.euler} · ${precisePercent.format(presentation(row))} by presentation (${count.format(row.record_count_le)} records) · ${precisePercent.format(pair(row))} by Hodge pair (${row.pair_count_le} pairs)`;
+  let clear;
+  const control = choices(view, chart, rows, {
+    id: "research-atlas-euler", label: "Euler threshold", value: row => row.euler,
+    option: row => `χ ≤ ${row.euler}`, initial: data.summary.largest_cdf_gap.euler, summary: describe,
+    changed: () => clear?.(),
+  });
+  pairedPoints(chart, rows, row => row.euler, [presentation, pair], control, describe, true);
+  control.initialize();
+  legend(view.graph, weightingLegend);
+  clear = runAction(view, control.current, row => ({ figure: "atlas-comparison", euler: row.euler }),
+    run => [describe(run.result)]);
+  recordAction(view, control.current, row => ({
+    query: { figure: "atlas-comparison", euler: row.euler }, title: `Non-product records with χ ≤ ${row.euler}`,
+  }), openRecords);
+}
+
+function atlasFactorsPanel(parent, rows, flagged, openRecords) {
+  const scope = flagged ? "flag" : "mass";
+  const view = flagged
+    ? panel(parent, "Favorability within each ambient factor count", "Inspect the flagged or unflagged records in an ambient-factor group.")
+    : panel(parent, "Weight by ambient factor count", "Compare how much of the archive each ambient-factor group represents under the two weighting rules.");
+  const measures = flagged
+    ? [row => ratio(row.presentation_flagged_share), row => ratio(row.pair_balanced_flagged_share)]
+    : [row => ratio(row.presentation_mass), row => ratio(row.pair_balanced_mass)];
+  const xFor = row => row.ambient_factors;
+  const label = row => `${xFor(row)} factors · ${count.format(row.record_count)} records`;
+  const measureName = flagged ? "flagged share" : "share of total weight";
+  const describe = row => `${label(row)} · ${count.format(row.flagged_count)} marked favorable · ${precisePercent.format(measures[0](row))} ${measureName} by presentation and ${precisePercent.format(measures[1](row))} by Hodge pair`;
+  const chart = graph(view.graph, flagged ? "Favorability share per ambient factor count"
+    : "Archive weight per ambient factor count", [.55, rows.at(-1).ambient_factors + .45, 0, flagged ? 1.04 : .28], {
+    xTicks: rows.map(xFor), yTicks: flagged ? [0, .25, .5, .75, 1] : [0, .05, .10, .15, .20, .25],
+    yFormat: percent.format, xLabel: "Ambient projective factors", yLabel: flagged ? "Flagged share" : "Share of total weight",
+    verticalGrid: true,
+  });
+  const filters = { all: "All records", 1: "Flagged favorable", 0: "Unflagged" };
+  const flag = flagged && field("research-atlas-flag-status", "Archive favorability flag", ["all", "1", "0"],
+    value => value, value => filters[value]);
+  let clear;
+  const control = choices(view, chart, rows, {
+    id: `research-atlas-${scope}-factors`, label: "Ambient factor count", value: xFor,
+    option: label, initial: 7, summary: describe, extra: flag ? [flag.wrapper] : [],
+    changed: () => clear?.(),
+  });
+  pairedPoints(chart, rows, xFor, measures, control, describe);
+  control.initialize();
+  legend(view.graph, weightingLegend);
+  clear = runAction(view, control.current, row => ({ figure: "atlas-comparison", factors: xFor(row) }),
+    run => [describe(run.result)]);
+  recordAction(view, control.current, row => ({
+    query: { figure: "atlas-comparison", factors: xFor(row),
+      ...(flag && flag.select.value !== "all" ? { favourable: flag.select.value } : {}) },
+    title: `Non-product records with ${xFor(row)} ambient factors`,
+  }), openRecords);
+}
+
+function atlasEffectsPanel(parent, data, openRecords) {
+  const view = panel(parent, "Decomposition of the pooled change",
+    "Select a contribution. Each uses the full non-product archive and reruns the exact weighting calculation.");
+  const names = { composition: "Composition", within_rank: "Within group", total: "Net change" };
+  const value = (summary, key) => ratio(summary.flagged_share_change[key]);
+  const rows = Object.keys(names).map((key, i) => ({ key, order: 2 - i }));
+  const chart = graph(view.graph, "Signed contributions to the change in weighted favorability",
+    [-.13, .15, -.6, 2.6], {
+      left: 112, xTicks: [-.1, -.05, 0, .05, .1, .15],
+      xFormat: v => String(Math.round(100 * v)), yTicks: [0, 1, 2],
+      yFormat: v => names[rows[2 - v].key], xLabel: "Change (percentage points)", yLabel: "",
+      verticalGrid: true,
+    });
+  const summary = (result, row) => `${names[row.key]} · ${pp(value(result, row.key))}`;
+  let clear;
+  const control = choices(view, chart, rows, {
+    id: "research-atlas-effect", label: "Contribution", value: row => row.key,
+    option: row => names[row.key], initial: "total", summary: row => summary(data.summary, row),
+    changed: () => clear?.(),
+  });
+  drawPath(chart, [{ y: -.6 }, { y: 2.6 }], () => 0, row => row.y, "research-reference-line");
+  for (const row of rows) {
+    const delta = value(data.summary, row.key);
+    const origin = chart.x(0), end = chart.x(delta);
+    const y = chart.y(row.order);
+    const mark = svgNode("g");
+    mark.append(svgNode("rect", { x: Math.min(origin, end), y: y - 16, width: Math.abs(end - origin),
+      height: 32, rx: 4, class: delta < 0 ? "research-warm" : "research-fill" }),
+    svgNode("text", { x: end + (delta < 0 ? -7 : 7), y: y + 4,
+      "text-anchor": delta < 0 ? "end" : "start", class: "research-annotation" }, pp(delta)));
+    point(chart, mark, row.key, summary(data.summary, row), control.choose);
+  }
+  control.initialize();
+  clear = runAction(view, control.current, () => ({ figure: "atlas-comparison" }), run => [
+    summary(run.result, control.current()),
+    `Pooled favorability · ${precisePercent.format(ratio(run.result.presentation_flagged_share))} by presentation · ${precisePercent.format(ratio(run.result.pair_balanced_flagged_share))} by Hodge pair`,
+  ]);
+  recordAction(view, control.current, () => ({
+    query: { figure: "atlas-comparison" }, title: "All non-product source records",
+  }), openRecords);
+}
+
+function atlasComparison(root, data, openRecords) {
+  const figure = section(root, "atlas-comparison", "Weighting the CICY3 atlas",
+    `The same ${count.format(data.population.non_product_presentations)} non-product records support two weighting rules. ` +
+    `The median Euler characteristic is ${data.summary.median_euler.presentation} by presentation and ` +
+    `${data.summary.median_euler.equal_pair} by distinct Hodge pair.`, "atlas-comparison", true);
+  figure.classList.add("research-multirow");
+  atlasEulerPanel(figure, data, openRecords);
+  atlasFactorsPanel(figure, data.ambient_factor_groups, false, openRecords);
+  atlasFactorsPanel(figure, data.ambient_factor_groups, true, openRecords);
+  atlasEffectsPanel(figure, data, openRecords);
+}
+
+function exactBicubicDescription(row) {
+  return `(${row.a}, ${row.b}) · ${bundleValues(row.h, row.index)}`;
+}
+
+function exactBicubicActions(view, current, recordId, openRecords) {
+  const clear = runAction(view, current, row => ({ figure: "bicubic-exact", a: row.a, b: row.b }), run => [
+    exactBicubicDescription(run.result),
+    `Generic benchmark · (${run.result.generic_h.join(", ")}) · paired excess ${run.result.paired_excess} · exact rank ${run.result.rank_h2}`,
+  ]);
+  recordAction(view, current, () => ({
+    query: { figure: "bicubic-exact" }, title: `Bicubic ambient configuration #${recordId}`,
+  }), openRecords, true);
+  return clear;
+}
+
+function bicubicChargePanel(parent, data, openRecords) {
+  const view = panel(parent, "Excess in each middle degree", "Explore a charge pair on the specified smooth bicubic equation.");
+  const [lower, upper] = data.charge_range_per_axis;
+  const ticks = [lower, -4, 0, 4, upper];
+  const chart = graph(view.graph, "Heat map of paired cohomology excess on the specified bicubic",
+    [lower - .5, upper + .5, lower - .5, upper + .5], {
+      xTicks: ticks, yTicks: ticks, xLabel: "Charge a", yLabel: "Charge b",
+    });
+  const values = Array.from({ length: upper - lower + 1 }, (_, i) => lower + i);
+  const a = field("research-bicubic-exact-a", "Charge a", values, v => v, String);
+  const b = field("research-bicubic-exact-b", "Charge b", values, v => v, String);
+  const fields = node("div", "", "research-fields");
+  const report = node("p", "", "research-selection");
+  report.setAttribute("aria-live", "polite");
+  fields.append(a.wrapper, b.wrapper);
+  view.details.append(fields, report);
+  const chargeKey = row => `${row.a},${row.b}`;
+  const indexed = new Map(data.rows.map(row => [chargeKey(row), row]));
+  const choice = () => `${a.select.value},${b.select.value}`;
+  const current = () => indexed.get(choice());
+  const marks = new Map();
+  let currentMark;
+  let clear;
+  function update() {
+    currentMark?.classList.remove("is-selected");
+    currentMark = marks.get(choice());
+    currentMark.classList.add("is-selected");
+    report.textContent = `${exactBicubicDescription(current())} · excess ${current().paired_excess} in each middle degree`;
+    clear?.();
+  }
+  const width = chart.x(.5) - chart.x(-.5);
+  const height = chart.y(-.5) - chart.y(.5);
+  for (const row of data.rows) {
+    const intensity = .22 + .78 * Math.sqrt(row.paired_excess / data.summary.max_paired_excess);
+    const mark = svgNode("rect", {
+      x: chart.x(row.a) - width / 2, y: chart.y(row.b) - height / 2, width, height,
+      class: row.paired_excess ? "research-fill research-heat-cell" : "research-heat-empty research-heat-cell",
+      opacity: row.paired_excess ? intensity : 1,
+    });
+    marks.set(chargeKey(row), point(chart, mark, chargeKey(row),
+      `${exactBicubicDescription(row)} · excess ${row.paired_excess}`, () => {
+        a.select.value = row.a;
+        b.select.value = row.b;
+        update();
+      }));
+  }
+  drawPath(chart, [{ a: lower, b: upper }, { a: upper, b: lower }], row => row.a, row => row.b, "research-diagonal");
+  legend(view.graph, [["fill", "Stronger color shows more excess"], ["track", "No excess"], ["warm-line", "Zero-index diagonal"]]);
+  clear = exactBicubicActions(view, current, data.record, openRecords);
+  a.select.addEventListener("change", update);
+  b.select.addEventListener("change", update);
+  a.select.value = "3";
+  b.select.value = "-3";
+  update();
+}
+
+function bicubicDiagonalPanel(parent, data, openRecords) {
+  const view = panel(parent, "Cancellation along b = −a", "Select a bar to compare the signed contributions of the two middle degrees.");
+  const rows = data.rows.filter(row => row.a > 0 && row.b === -row.a);
+  const max = Math.max(...rows.flatMap(row => [row.h[1], row.h[2]]));
+  const chart = graph(view.graph, "Signed contributions of H¹ and H² to the index on the bicubic charge diagonal",
+    [.5, rows.at(-1).a + .5, -max * 1.2, max * 1.2], {
+      xTicks: rows.map(row => row.a), yTicks: [-40, -20, 0, 20, 40],
+      xLabel: "Charge a along b = −a", yLabel: "Signed contribution to index",
+    });
+  let clear;
+  const selected = choices(view, chart, rows, {
+    id: "research-bicubic-exact-diagonal", label: "Diagonal charge a", value: row => row.a,
+    option: row => `(${row.a}, ${row.b})`, initial: 3, summary: exactBicubicDescription,
+    changed: () => clear?.(),
+  });
+  const width = .64 * (chart.x(2) - chart.x(1));
+  for (const row of rows) {
+    const mark = svgNode("g");
+    const x = chart.x(row.a) - width / 2;
+    mark.append(svgNode("rect", { x, y: chart.y(max * 1.2), width,
+      height: chart.y(-max * 1.2) - chart.y(max * 1.2), class: "research-hit" }));
+    mark.append(svgNode("rect", { x, y: chart.y(row.h[2]), width,
+      height: chart.y(0) - chart.y(row.h[2]), rx: 2, class: "research-fill" }));
+    mark.append(svgNode("rect", { x, y: chart.y(0), width,
+      height: chart.y(-row.h[1]) - chart.y(0), rx: 2, class: "research-coh3" }));
+    point(chart, mark, row.a, exactBicubicDescription(row), selected.choose);
+  }
+  drawPath(chart, [.5, rows.at(-1).a + .5], value => value, () => 0, "research-reference-line");
+  selected.initialize();
+  legend(view.graph, [["fill", "H² contributes +h²"], ["diamond", "H¹ contributes −h¹"]]);
+  clear = exactBicubicActions(view, selected.current, data.record, openRecords);
+}
+
+function bicubicExact(root, data, openRecords) {
+  const matrix = data.coefficient_matrix.map(row => `(${row.join(", ")})`).join(", ");
+  const figure = section(root, "bicubic-exact", "Cohomology jumps on a specified smooth bicubic",
+    `The manuscript calculates dimensions on the smooth equation F = Σ Aᵢⱼxᵢ³yⱼ³ with A = (${matrix}). ` +
+    `The archive record ${data.record} supplies the ambient configuration. The manuscript supplies the equation. ` +
+    `Middle-degree dimensions exceed the generic benchmark at ${data.summary.jumping_points} of ${data.summary.points} charges, with the same index.`,
+    "bicubic-exact", true);
+  bicubicChargePanel(figure, data, openRecords);
+  bicubicDiagonalPanel(figure, data, openRecords);
+}
+
 const figures = [
+  ["chern-audit", "Polarized degrees and Chern pairings", chernAudit, "chern-audit"],
   ["atlas", "Hodge and Euler atlas", atlas],
   ["multiplicity", "Hodge-pair multiplicity", multiplicity],
   ["structure", "Configuration structure", structure],
+  ["atlas-comparison", "Atlas weighting", atlasComparison, "atlas-comparison"],
   ["cohomology", "Line-bundle calculations", cohomology],
+  ["bicubic-exact", "Exact bicubic cohomology", bicubicExact, "bicubic-exact"],
 ];
 
 function intro(root) {
@@ -634,7 +1005,7 @@ function intro(root) {
   const figuresLink = link("Explore the figures", "#research-figures", "button secondary-hero");
   actions.append(manuscript, figuresLink);
   text.append(header, title,
-    node("p", "Inspect the four figures, trace each selection to the archive, and rerun exact calculations with Python."),
+    node("p", "Inspect all seven figures, trace each selection to the archive, and rerun exact calculations with Python."),
     actions);
   const provenance = node("dl", "", "research-provenance");
   provenance.hidden = true;
@@ -677,13 +1048,14 @@ export async function initializeResearch({ openRecords }) {
   status.setAttribute("role", "status");
   root.append(status);
   try {
-    const data = await request("/api/research");
+    const [data, studies] = await Promise.all([request("/api/research"), request("/api/research/studies")]);
     const rendered = document.createDocumentFragment();
-    for (const [, , render] of figures) render(rendered, data, openRecords);
+    for (const [, , render, study] of figures) render(rendered, study ? studies[study] : data, openRecords);
     root.append(rendered);
     status.remove();
+    await provenance;
     if (figures.some(([id]) => location.hash === `#research-${id}`)) {
-      document.getElementById(location.hash.slice(1)).scrollIntoView();
+      document.getElementById(location.hash.slice(1)).scrollIntoView({ behavior: "instant", block: "start" });
     }
   } catch (error) {
     status.textContent = `Figure data unavailable. ${error.message}`;
@@ -693,5 +1065,4 @@ export async function initializeResearch({ openRecords }) {
     retry.addEventListener("click", () => initializeResearch({ openRecords }));
     root.append(retry);
   }
-  await provenance;
 }

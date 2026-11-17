@@ -6,7 +6,7 @@ import sys
 import warnings
 
 from ._client import CIPro, EvaluationError
-from ._dashboard_research import recompute_cohomology
+from ._dashboard_research import STUDY_NAMES, recompute_cohomology, recompute_study
 from ._dashboard_values import decode, encode
 from ._native_errors import NativeUnsupportedError
 
@@ -46,8 +46,11 @@ def main():
     try:
         request = json.load(sys.stdin)
         with redirect_stdout(sys.stderr), CIPro(backend="python") as client:
-            if isinstance(request, dict) and request.get("research") == "cohomology":
+            research = request.get("research") if isinstance(request, dict) else None
+            if research == "cohomology":
                 result = recompute_cohomology(client, request)
+            elif research in STUDY_NAMES:
+                result = recompute_study(request)
             else:
                 result = run_operation(client, request, "python")
     except NativeUnsupportedError as exc:

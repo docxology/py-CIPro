@@ -11,18 +11,21 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Use `--port 8765` to sele
 
 ## Read and reproduce the manuscript figures
 
-Open **Manuscript** to read the PDF and explore its four figures. The dashboard
-serves the 12-page published render and each standalone vector figure from
+Open **Manuscript** to read the PDF and explore its seven figures. The dashboard
+serves the 19-page revised render and each standalone vector figure from
 the installed package. The interactive panels use the same source data as
 the manuscript figures. The manuscript and figure provenance identifies the
 rendered source revision, renderer, and archive digests. [Manuscript build](manuscript.md)
 
 | Figure | Select a plotted value to inspect |
 | --- | --- |
+| Polarized degrees and Chern pairings | A polarized degree and pairing, optionally restricted to the modal Hodge pair |
 | Threefold archive | A non-product Hodge pair or an exact Euler characteristic |
 | Configuration size and favorability | A configuration shape or the non-product records in one ambient factor group |
 | Hodge-pair multiplicity | A ranked group, a prefix of the cumulative distribution, or a multiplicity bin |
+| Catalogue weighting | An Euler threshold, an ambient factor count, or the full non-product population |
 | Line-bundle cohomology | A quintic degree or a bicubic charge pair, alongside the source configuration |
+| Exact bicubic cohomology | An integer charge pair for the explicit smooth member used in the manuscript |
 
 Use the controls next to each plot if you prefer to select a value by
 keyboard. Choose **Open source records** to open the exact archive cohort in
@@ -37,6 +40,17 @@ and bicubic charges −8 through 8 on each axis. Some bicubic charges support
 the exact index while their dimensions are outside the native implementation's
 domain. The result reports those dimensions as unavailable and shows the
 calculated index. The original configuration is linked in each panel.
+
+The three additional figures provide **Rerun in Python** actions. The Chern
+audit integrates the selected record's configuration in the ambient ring and
+returns its degree, ordered second Chern pairings, and polarized index. The
+weighting figure recomputes the selected threshold, factor group, or pooled
+comparison from the released catalogue with exact rational weights. The exact
+bicubic figure computes rational multiplication-map ranks for the explicit
+equation shown in the manuscript, then reports its cohomology dimensions,
+the generic comparison, and the index. Archive record 7884 gives the
+configuration of that example. The coefficients specify a particular smooth
+member of that configuration. The three studies include standalone JSON data.
 
 ## Select a compute backend
 
@@ -94,11 +108,13 @@ The dashboard constructs symbolic values from these tags and treats ordinary str
 | `GET /api/record?id=7890` | One archived configuration and its ambient dimensions |
 | `GET /api/kernel` | Initial backend and selectable backends |
 | `GET /api/methods` | Released method catalog, native availability, dashboard eligibility, and executable examples |
-| `GET /api/research` | Manuscript figure data |
+| `GET /api/research` | Figure data for the catalogue and original line-bundle study |
+| `GET /api/research/studies` | The three additional manuscript studies |
 | `GET /api/research/provenance` | Manuscript identity, archive and asset digests, and caption metadata |
 | `GET /api/research/records?figure=atlas&h11=1&h21=101` | Exact archive IDs represented by a figure selection |
-| `POST /api/research/rerun` | Fresh Python line-bundle calculation for a plotted charge |
+| `POST /api/research/rerun` | Fresh Python calculation for a plotted study input |
 | `GET /research/manuscript.pdf` | Packaged manuscript PDF |
+| `GET /research/chern-audit.json` | Exact standalone data for a supplementary study |
 | `POST /api/compute` | Selected `CIDim`, `CY`, and `Euler` properties for one archived record |
 | `POST /api/run` | One eligible named method with explicit arguments and options |
 
@@ -114,8 +130,12 @@ curl -fsS http://127.0.0.1:8765/api/run \
 curl -fsS http://127.0.0.1:8765/api/research/rerun \
   -H 'Content-Type: application/json' \
   -d '{"figure":"cohomology","geometry":"bicubic","a":-8,"b":1}'
+
+curl -fsS http://127.0.0.1:8765/api/research/rerun \
+  -H 'Content-Type: application/json' \
+  -d '{"figure":"bicubic-exact","a":3,"b":-3}'
 ```
 
 `/api/compute` returns `source`, `backend`, and `properties`. `/api/run` returns `source`, `backend`, and `result`, plus `messages` and `output` arrays when produced. The method request uses `function`, `property`, or `modification` for `kind`. For a public function, `args` contains its positional arguments. For a property or modification key, `args` contains one argument holding the input geometry or association list. Error responses give an `error` message.
 
-Record compute accepts up to 1 KiB of input, and method calls accept up to 24 KiB. Serialized results are capped at 512 KiB. Native calls run in a separate worker with a 25-second timeout. Smaller inputs and narrower queries help keep interactive requests within those bounds.
+Record compute and study reruns accept up to 1 KiB of input, and method calls accept up to 24 KiB. Serialized calculation results are capped at 512 KiB. Native calls run in a separate worker with a 25-second timeout. Smaller inputs and narrower queries help keep interactive requests within those bounds.

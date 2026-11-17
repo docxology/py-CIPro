@@ -10,14 +10,21 @@ import re
 from urllib.parse import parse_qsl
 
 from ._native_errors import NativeUnsupportedError
+from ._research_atlas import atlas_comparison
+from ._research_bicubic import COEFFICIENTS, bicubic_study_row
+from ._research_chern import polarized_invariants
+from .catalog import get_catalog
 
 
+STUDY_NAMES = ("chern-audit", "atlas-comparison", "bicubic-exact")
+STUDY_DATA = tuple(f"{name}.json" for name in STUDY_NAMES)
 PDF_NAMES = (
     "manuscript.pdf",
     "cicy3-atlas.pdf",
     "cicy3-structure.pdf",
     "cicy3-multiplicity.pdf",
     "line-bundle-cohomology.pdf",
+    *(f"{name}.pdf" for name in STUDY_NAMES),
 )
 ANALYSIS_NAME = "manuscript-analysis.json"
 PROVENANCE_NAME = "provenance.json"
@@ -29,23 +36,30 @@ class ResearchBundle:
     bodies: dict[str, bytes]
     analysis: dict
     provenance: dict
+    studies: dict
 
 
 @lru_cache(maxsize=1)
 def research_bundle():
     """Read packaged assets by fixed name and check them against their manifest."""
     directory = files("py_cipro").joinpath("research_data")
-    bodies = {name: directory.joinpath(name).read_bytes() for name in (
-        ANALYSIS_NAME, PROVENANCE_NAME, *PDF_NAMES,
-    )}
+    asset_names = (ANALYSIS_NAME, *PDF_NAMES, *STUDY_DATA)
+    bodies = {name: directory.joinpath(name).read_bytes() for name in (*asset_names, PROVENANCE_NAME)}
     provenance = json.loads(bodies[PROVENANCE_NAME])
-    digests = {name: sha256(bodies[name]).hexdigest() for name in (ANALYSIS_NAME, *PDF_NAMES)}
+    digests = {name: sha256(bodies[name]).hexdigest() for name in asset_names}
     if provenance.get("assets_sha256") != digests:
         raise ValueError("The bundled research asset digests do not match their provenance.")
     analysis = json.loads(bodies[ANALYSIS_NAME])
     if analysis.get("schema_version") != 1:
         raise ValueError("The bundled research analysis uses an unsupported schema.")
-    return ResearchBundle(bodies, analysis, provenance)
+    studies = {name: json.loads(bodies[f"{name}.json"]) for name in STUDY_NAMES}
+    bicubic = studies["bicubic-exact"]
+    if (bicubic["native_receipt_sha256"] != digests[ANALYSIS_NAME]
+            or bicubic["record"] != analysis["cohomology"]["bicubic"]["record"]):
+        raise ValueError("The exact bicubic study uses a different native receipt.")
+    if bicubic["coefficient_matrix"] != [list(row) for row in COEFFICIENTS]:
+        raise ValueError("The exact bicubic study uses a different smooth member.")
+    return ResearchBundle(bodies, analysis, provenance, studies)
 
 
 def verify_catalog_binding(bundle, catalog):
@@ -57,6 +71,8 @@ def verify_catalog_binding(bundle, catalog):
         or metadata["dataset_sha256"] != catalog.member_sha256
         or bundle.provenance["archive_sha256"] != catalog.sha256
         or bundle.provenance["dataset_sha256"] != catalog.member_sha256
+        or any(study["archive_sha256"] != catalog.sha256 or study["dataset_sha256"] != catalog.member_sha256
+               for study in bundle.studies.values())
     ):
         raise ValueError("The bundled research analysis does not match the dashboard's Cicy3 archive.")
 
@@ -151,7 +167,38 @@ def _multiplicity_selection(fields, analysis, records):
     return [row.id for row in matches], label
 
 
-def record_selection(query, analysis, catalog):
+def _chern_selection(fields, study):
+    if fields.keys() not in ({"volume", "pairing"}, {"volume", "pairing", "modal"}):
+        raise ValueError("Select a polarized degree and Chern pairing.")
+    volume, pairing = _number(fields["volume"]), _number(fields["pairing"])
+    modal = _flag(fields, "modal")
+    hodge = study["summary"]["modal_hodge"]
+    ids = [
+        row["id"] for row in study["rows"]
+        if not row["product"] and (not modal or row["hodge"] == hodge)
+        and row["volume"] == volume and row["c2_polarized"] == pairing
+    ]
+    label = f"Polarized degree {volume} · Chern pairing {pairing}"
+    if modal:
+        label += f" · Hodge pair {tuple(hodge)}"
+    return ids, label
+
+
+def _atlas_comparison_selection(fields, records):
+    if not fields:
+        return [row.id for row in records if not row.product], "Atlas weighting · all non-products"
+    if fields.keys() == {"euler"}:
+        threshold = _number(fields["euler"])
+        return (
+            [row.id for row in records if not row.product and row.euler <= threshold],
+            f"Atlas weighting · Euler characteristic ≤ {threshold}",
+        )
+    if fields.keys() in ({"factors"}, {"factors", "favourable"}):
+        return _structure_selection(fields, records)
+    raise ValueError("Select an Euler threshold, an ambient factor count, or the full weighting study.")
+
+
+def record_selection(query, analysis, catalog, studies=None):
     fields = _query_fields(query)
     figure = fields.pop("figure", None)
     if figure == "atlas":
@@ -164,8 +211,15 @@ def record_selection(query, analysis, catalog):
         name = fields["geometry"]
         record = catalog.record(analysis["cohomology"][name]["record"])
         ids, label = [record.id], f"{name.capitalize()} · cohomology sweep"
+    elif figure == "chern-audit" and studies is not None:
+        ids, label = _chern_selection(fields, studies[figure])
+    elif figure == "atlas-comparison" and studies is not None:
+        ids, label = _atlas_comparison_selection(fields, catalog.records)
+    elif figure == "bicubic-exact" and not fields and studies is not None:
+        record = catalog.record(studies[figure]["record"])
+        ids, label = [record.id], "Bicubic · source configuration for the specified smooth member"
     else:
-        raise ValueError("Choose an atlas, structure, multiplicity, or cohomology selection.")
+        raise ValueError("Choose a valid manuscript figure selection.")
     return {"ids": ids, "matched": len(ids), "label": label}
 
 
@@ -194,6 +248,84 @@ def prepare_cohomology(payload, analysis, catalog):
     return {
         "research": "cohomology", "geometry": geometry, "record_id": record.id,
         "charges": charges, "manuscript": reference,
+    }
+
+
+def _study_values(payload, keys):
+    if payload.keys() != {"figure", *keys} or any(type(payload[key]) is not int for key in keys):
+        raise ValueError("Supply only the integer coordinates for the selected study.")
+    return tuple(payload[key] for key in keys)
+
+
+def _atlas_comparison_result(analysis, selector):
+    if not selector:
+        return analysis["summary"]
+    if "euler" in selector:
+        collection, key = "euler_cdf", "euler"
+        coordinate = selector["euler"]
+    else:
+        collection, key = "ambient_factor_groups", "ambient_factors"
+        coordinate = selector["factors"]
+    value = next((row for row in analysis[collection] if row[key] == coordinate), None)
+    if value is None:
+        raise ValueError("Choose a threshold or factor count within the plotted comparison.")
+    return value
+
+
+def prepare_research(payload, bundle, catalog):
+    """Validate a public request before passing a fixed operation to the Python worker."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("figure"), str):
+        raise ValueError("Select a manuscript figure for the calculation.")
+    figure = payload["figure"]
+    if figure == "cohomology":
+        return prepare_cohomology(payload, bundle.analysis, catalog)
+    if figure not in STUDY_NAMES:
+        raise ValueError("Choose an available manuscript study.")
+    study = bundle.studies[figure]
+    if figure == "chern-audit":
+        (record_id,) = _study_values(payload, ("record_id",))
+        if not 1 <= record_id <= len(catalog.records):
+            raise ValueError("Select a record ID within the CICY3 archive.")
+        reference = study["rows"][record_id - 1]
+        if reference["id"] != record_id:
+            raise ValueError("The Chern audit does not match the requested archive record.")
+        return {
+            "research": figure, "record_id": record_id,
+            "manuscript": {key: reference[key] for key in ("volume", "c2_polarized", "index", "c2")},
+        }
+    if figure == "atlas-comparison":
+        keys = tuple(payload.keys() - {"figure"})
+        if keys not in ((), ("euler",), ("factors",)):
+            raise ValueError("Select one plotted Euler threshold or ambient factor count.")
+        selector = dict(zip(keys, _study_values(payload, keys), strict=True))
+        return {"research": figure, "selector": selector, "manuscript": _atlas_comparison_result(study, selector)}
+    a, b = _study_values(payload, ("a", "b"))
+    reference = next((row for row in study["rows"] if (row["a"], row["b"]) == (a, b)), None)
+    if reference is None:
+        raise ValueError("Choose charges within the plotted smooth bicubic study.")
+    return {"research": figure, "record_id": study["record"], "charges": [a, b], "manuscript": reference}
+
+
+def recompute_study(payload):
+    """Evaluate one exact study in the native worker with the pinned data and equation."""
+    figure, manuscript = payload["research"], payload["manuscript"]
+    identity = {"record_id": payload["record_id"]} if "record_id" in payload else {}
+    if figure == "chern-audit":
+        c2, volume, pairing, index = polarized_invariants(get_catalog().record(payload["record_id"]))
+        result = {"volume": volume, "c2_polarized": pairing, "index": index, "c2": c2}
+        source = "Exact ambient intersection contractions with the all-ones polarization."
+    elif figure == "atlas-comparison":
+        result = _atlas_comparison_result(atlas_comparison(get_catalog()), payload["selector"])
+        source = "Exact rational weighting of the non-product CICY3 presentations."
+    elif figure == "bicubic-exact":
+        a, b = payload["charges"]
+        result = bicubic_study_row(a, b, manuscript["native_supported"])
+        source = "Exact rational ranks for the manuscript's specified smooth bicubic."
+    else:
+        raise ValueError("Unknown manuscript study.")
+    return {
+        "backend": "python", "source": source, **identity,
+        "result": result, "manuscript": manuscript, "matches_manuscript": result == manuscript,
     }
 
 

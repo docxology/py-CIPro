@@ -80,6 +80,10 @@
   min-width: 0;
 }
 .research-panel + .research-panel { border-left: 1px solid var(--line); }
+.research-multirow > .research-panel:nth-child(n + 3) { border-top: 1px solid var(--line); }
+@media (min-width: 821px) {
+  .research-multirow > .research-panel:nth-child(odd) { border-left: 0; }
+}
 .research-panel h4 { margin: 0; font-size: .98rem; line-height: 1.25; letter-spacing: -.01em; }
 .research-panel-description, .research-caption {
   font-size: .8rem;
@@ -117,6 +121,12 @@
 .research-rank-dot { fill: transparent; stroke: transparent; }
 .research-reference-line { fill: none; stroke: var(--dim); stroke-width: 1.2; stroke-dasharray: 4 4; pointer-events: none; }
 .research-trace-line { fill: none; stroke: var(--research-positive); stroke-width: 2.3; pointer-events: none; }
+.research-weighted-line { fill: none; stroke: var(--research-negative); stroke-width: 2; stroke-dasharray: 5 3; pointer-events: none; }
+.research-weighted-dot { fill: var(--research-negative); }
+.research-featured { fill: var(--white); stroke: var(--research-contribution); stroke-width: 2.3; }
+.research-heat-cell { stroke: var(--research-graph-bg); stroke-width: .55; }
+.research-heat-empty { fill: color-mix(in srgb, var(--plot-bar-empty) 39%, var(--research-graph-bg)); }
+.research-diagonal { fill: none; stroke: var(--research-contribution); stroke-width: 1.7; stroke-dasharray: 5 4; pointer-events: none; }
 .research-mark:hover:is(circle, rect), .research-mark.is-selected:is(circle, rect),
 .research-mark:hover :is(circle, rect, path), .research-mark.is-selected :is(circle, rect, path) {
   stroke: var(--research-selection);
@@ -145,6 +155,9 @@
 .research-key-warm { background: var(--research-contribution); }
 .research-key-track { background: var(--plot-bar-empty); }
 .research-key-line { height: 0; border-top: 2px dashed var(--dim); }
+.research-key-warm-line { height: 0; border-top: 2px dashed var(--research-contribution); }
+.research-key-diamond { background: var(--research-negative); rotate: 45deg; width: 8px; height: 8px; margin-inline: 1px; }
+.research-key-featured { border: 2px solid var(--research-contribution); border-radius: 50%; }
 .research-key-triangle { background: var(--research-negative); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .research-key-empty { border: 1.5px solid var(--research-positive); }
 .research-key-cross { position: relative; }

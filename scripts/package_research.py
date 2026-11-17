@@ -8,10 +8,14 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FIGURE_IDS = ("cicy3-atlas", "cicy3-structure", "cicy3-multiplicity", "line-bundle-cohomology")
+STUDY_IDS = ("chern-audit", "atlas-comparison", "bicubic-exact")
+FIGURE_IDS = (
+    "chern-audit", "cicy3-atlas", "cicy3-multiplicity", "cicy3-structure",
+    "atlas-comparison", "line-bundle-cohomology", "bicubic-exact",
+)
 ASSETS = {
     "manuscript.pdf": "pdf/py-CIPro-manuscript.pdf",
-    "manuscript-analysis.json": "data/manuscript-analysis.json",
+    **{f"{name}.json": f"data/{name}.json" for name in ("manuscript-analysis", *STUDY_IDS)},
     **{f"{figure}.pdf": f"figures/{figure}.pdf" for figure in FIGURE_IDS},
 }
 
@@ -40,9 +44,9 @@ def package_research(export, destination, template_commit, manuscript_title, man
     if not any(entry["sha256"] == sha256(assets["manuscript.pdf"]).hexdigest()
                for entry in manifest["entries"] if entry["path"].endswith("_combined.pdf")):
         raise ValueError("The manuscript PDF is absent from the template artifact receipt")
-    canonical = ROOT / "data" / "manuscript-analysis.json"
-    if assets["manuscript-analysis.json"] != canonical.read_bytes():
-        raise ValueError("The exported analysis differs from the source data")
+    for name, source_path in ASSETS.items():
+        if name.endswith(".json") and assets[name] != (ROOT / source_path).read_bytes():
+            raise ValueError(f"The exported analysis differs from the source data for {name}")
     registry = json.loads(checked("figures/figure_registry.json"))
     figure_metadata = {Path(item["filename"]).stem: item for item in registry["figures"]}
     if not set(FIGURE_IDS) <= figure_metadata.keys():

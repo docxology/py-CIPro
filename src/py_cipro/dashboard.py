@@ -20,7 +20,8 @@ from ._dashboard_research import (
     ANALYSIS_NAME,
     PDF_NAMES,
     PROVENANCE_NAME,
-    prepare_cohomology,
+    STUDY_DATA,
+    prepare_research,
     record_selection,
     research_bundle,
     verify_catalog_binding,
@@ -46,6 +47,7 @@ STATIC = {
     "/research.css": ("research.css", "text/css"),
 }
 RESEARCH_PDFS = {f"/research/{name}": name for name in PDF_NAMES}
+RESEARCH_DATA = {f"/research/{name}": name for name in STUDY_DATA}
 _RECORD_QUERY = re.compile(r"id=([1-9][0-9]{0,3})\Z")
 
 
@@ -102,14 +104,14 @@ class DashboardServer(ThreadingHTTPServer):
     def research_records(self, query):
         bundle = self.research()
         try:
-            return record_selection(query, bundle.analysis, self.catalog)
+            return record_selection(query, bundle.analysis, self.catalog, bundle.studies)
         except ValueError as exc:
             raise RequestError(HTTPStatus.BAD_REQUEST, str(exc)) from exc
 
     def research_rerun(self, payload):
         bundle = self.research()
         try:
-            operation = prepare_cohomology(payload, bundle.analysis, self.catalog)
+            operation = prepare_research(payload, bundle, self.catalog)
         except ValueError as exc:
             raise RequestError(HTTPStatus.BAD_REQUEST, str(exc)) from exc
         return self.run(operation, "python")
@@ -186,6 +188,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._reply(HTTPStatus.OK, self.server.method_body, "application/json")
             elif target.path == "/api/research" and not target.query:
                 self._reply(HTTPStatus.OK, self.server.research().bodies[ANALYSIS_NAME], "application/json")
+            elif target.path == "/api/research/studies" and not target.query:
+                self._json(HTTPStatus.OK, self.server.research().studies)
             elif target.path == "/api/research/provenance" and not target.query:
                 self._reply(HTTPStatus.OK, self.server.research().bodies[PROVENANCE_NAME], "application/json")
             elif target.path == "/api/research/records":
@@ -193,6 +197,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             elif target.path in RESEARCH_PDFS and not target.query:
                 name = RESEARCH_PDFS[target.path]
                 self._reply(HTTPStatus.OK, self.server.research().bodies[name], "application/pdf", filename=name)
+            elif target.path in RESEARCH_DATA and not target.query:
+                name = RESEARCH_DATA[target.path]
+                self._reply(HTTPStatus.OK, self.server.research().bodies[name], "application/json", filename=name)
             else:
                 raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
         except RequestError as exc:
