@@ -19,7 +19,7 @@ py-cipro-dashboard
 
 Open [the local dashboard](http://127.0.0.1:8765/). It reads the verified `Cicy3` member and links the Hodge plot, Euler distribution, record table, and configuration-matrix inspector across all 7,890 archived rows. Filter or select a point to see its contributing records. The 22 archived product rows use `(0, 0)` placeholders for their Hodge pair. The explorer identifies those rows separately. The archive view runs offline.
 
-With an activated kernel, `py-cipro-dashboard --kernel` enables live recalculation of `CIDim`, `CY`, and `Euler` for a selected archived configuration. The service binds to loopback and exposes the same operations as a small JSON API. See the [research guide](docs/research.md) for the source bindings, interpretation, and reference geometries. See the [Wolfram API guide](docs/wolfram-api.md) for the local, SSH, and Wolfram Cloud workflows.
+With an activated kernel, `py-cipro-dashboard --kernel` enables live recalculation of `CIDim`, `CY`, and `Euler` for a selected archived configuration. Use `py-cipro-dashboard --cloud` with a deployed private Wolfram Cloud backend. `py-cipro-cloud deploy`, `status`, and `qualify` cover installation, package health, and native dataset checks. The dashboard service binds to loopback and exposes selected operations as a small JSON API. See the [research guide](docs/research.md) for the source bindings, interpretation, and reference geometries. See the [Wolfram API guide](docs/wolfram-api.md) for account access, deployment, live tests, and the local and SSH workflows.
 
 ## Use
 

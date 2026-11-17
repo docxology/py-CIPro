@@ -15,7 +15,7 @@ const state = {
   records: [], bins: [], domain: { h11: 10, h21: 10 }, source: null,
   view: [], query: '', favourable: 'all', product: 'all', pair: null, bin: null,
   recordId: null, record: null, page: 0, sort: 'id', direction: 1,
-  kernelEnabled: false, kernelChecked: false, computing: false,
+  kernelEnabled: false, kernelChecked: false, kernelProvider: 'archive', kernelError: null, computing: false,
 }
 let plotPoints = []
 let requestSerial = 0
@@ -365,15 +365,25 @@ function renderRecord(record) {
 }
 
 function renderKernelState() {
+  const cloud = state.kernelProvider === 'cloud'
+  const local = state.kernelProvider === 'local'
   $('kernel-inputs').disabled = !state.kernelEnabled || !state.record || state.computing
   $('kernel-dot').classList.toggle('ready', state.kernelEnabled)
-  $('kernel-status').textContent = !state.kernelChecked ? 'Checking kernel' : state.kernelEnabled ? 'Kernel enabled' : 'Archive mode'
+  $('kernel-submit').textContent = cloud ? 'Run in Wolfram Cloud' : local ? 'Run in local Wolfram kernel' : 'Run CIPro'
+  let indicator = 'Archive mode'
+  if (!state.kernelChecked) indicator = 'Checking evaluation'
+  else if (cloud) indicator = state.kernelEnabled ? 'Wolfram Cloud configured' : 'Cloud setup needed'
+  else if (local) indicator = 'Local kernel enabled'
+  $('kernel-status').textContent = indicator
   if (state.computing) return
   const status = $('kernel-help')
-  status.classList.remove('error')
-  status.textContent = !state.kernelChecked ? 'Checking live evaluation availability.' : state.kernelEnabled
-    ? (state.record ? 'Live results use the local Wolfram kernel.' : 'Choose a record to run CIPro.')
-    : 'Live evaluation is off. The catalogue and its visualizations work offline.'
+  status.classList.toggle('error', Boolean(state.kernelError))
+  if (!state.kernelChecked) status.textContent = 'Checking the evaluation provider.'
+  else if (state.kernelError) status.textContent = state.kernelError
+  else if (!state.kernelEnabled) status.textContent = 'Live evaluation is off. The catalogue and its visualizations work offline.'
+  else if (!state.record) status.textContent = 'Choose a record to run CIPro.'
+  else if (cloud) status.textContent = 'The dashboard sends the record ID and selected keys to Wolfram Cloud when you run CIPro.'
+  else status.textContent = 'Live results use the local Wolfram kernel.'
 }
 
 async function selectRecord(id, { updateURL = true, reload = false } = {}) {
@@ -511,7 +521,8 @@ $('compute-form').addEventListener('submit', async (event) => {
   const serial = requestSerial
   state.computing = true
   renderKernelState()
-  status.textContent = `Running CIPro for configuration #${recordId}…`
+  const providerText = state.kernelProvider === 'cloud' ? ' in Wolfram Cloud' : ''
+  status.textContent = `Running CIPro for configuration #${recordId}${providerText}…`
   const output = $('compute-output')
   output.hidden = true
   try {
@@ -551,7 +562,13 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (state.source) drawCurrentScatter()
 })
 
-loadJSON('/api/kernel').then(({ enabled }) => { state.kernelEnabled = enabled === true }).catch(() => {}).finally(() => {
+loadJSON('/api/kernel').then(({ enabled, provider, error }) => {
+  state.kernelEnabled = enabled === true
+  state.kernelProvider = ['local', 'cloud'].includes(provider) ? provider : 'archive'
+  state.kernelError = typeof error === 'string' ? error : null
+}).catch(() => {
+  state.kernelError = 'Live evaluation status could not be read.'
+}).finally(() => {
   state.kernelChecked = true
   renderKernelState()
 })

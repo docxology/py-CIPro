@@ -1,4 +1,4 @@
-"""Serve the archived Cicy3 explorer and an opt-in local CIPro compute API."""
+"""Serve the archived Cicy3 explorer with optional local or Wolfram Cloud evaluation."""
 
 import argparse
 from dataclasses import asdict
@@ -13,6 +13,13 @@ from urllib.parse import urlsplit
 
 from ._client import CIPro, EvaluationError, KernelUnavailable
 from .catalog import get_catalog
+from .cloud import (
+    CloudAuthenticationError,
+    CloudCIPro,
+    CloudConfigurationError,
+    CloudError,
+    CloudUnavailableError,
+)
 
 LOGGER = logging.getLogger(__name__)
 COMPUTE_PROPERTIES = frozenset({"CIDim", "CY", "Euler"})
@@ -32,7 +39,9 @@ class RequestError(Exception):
 
 
 class DashboardServer(ThreadingHTTPServer):
-    def __init__(self, port: int, *, kernel: bool = False):
+    def __init__(self, port: int, *, kernel: bool = False, cloud: bool = False):
+        if kernel and cloud:
+            raise ValueError("Choose either local kernel or Wolfram Cloud evaluation.")
         self.catalog = get_catalog()
         self.catalog_body = _json_bytes({
             "dataset": self.catalog.dataset,
@@ -41,28 +50,55 @@ class DashboardServer(ThreadingHTTPServer):
             "member_sha256": self.catalog.member_sha256,
             "records": [record.summary() for record in self.catalog.records],
         })
-        self.kernel_enabled = kernel
+        self.provider = "cloud" if cloud else "local" if kernel else "archive"
         self.kernel = CIPro(startup_timeout=60, evaluation_timeout=30) if kernel else None
+        self.cloud = None
+        self.cloud_config_error = None
+        if cloud:
+            try:
+                self.cloud = CloudCIPro.from_environment()
+            except CloudConfigurationError as exc:
+                self.cloud_config_error = str(exc)
         self.compute_lock = Lock()
+        self.compute_closed = False
         super().__init__(("127.0.0.1", port), DashboardHandler)
 
     def server_close(self):
         super().server_close()
-        if self.kernel is not None:
-            with self.compute_lock:
-                self.kernel.close()
+        with self.compute_lock:
+            self.compute_closed = True
+            client = self.cloud if self.cloud is not None else self.kernel
+            if client is not None:
+                client.close()
+
+    def kernel_status(self) -> dict:
+        status = {
+            "enabled": self.kernel is not None or self.cloud is not None,
+            "provider": self.provider,
+        }
+        if self.cloud_config_error is not None:
+            status["error"] = self.cloud_config_error
+        return status
 
     def compute(self, record_id: int, properties: list[str]) -> dict:
         record = self.catalog.record(record_id)
-        if self.kernel is None:
-            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, "Live Wolfram evaluation is disabled on this server.")
+        if self.kernel is None and self.cloud is None:
+            message = self.cloud_config_error or "Live Wolfram evaluation is disabled on this server."
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, message)
         if not self.compute_lock.acquire(blocking=False):
-            raise RequestError(HTTPStatus.CONFLICT, "Another kernel calculation is running. Try again after it finishes.")
+            raise RequestError(HTTPStatus.CONFLICT, "Another CIPro calculation is running. Try again after it finishes.")
         try:
-            result = self.kernel.property(
-                {"Conf": record.configuration, "DimPs": record.ambient_dimensions},
-                properties,
-            )
+            if self.compute_closed:
+                raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, "The dashboard is shutting down.")
+            if self.cloud is not None:
+                result = self.cloud.properties(record_id, properties)
+                source = f"CIPro {self.catalog.release} in Wolfram Cloud"
+            else:
+                result = self.kernel.property(
+                    {"Conf": record.configuration, "DimPs": record.ambient_dimensions},
+                    properties,
+                )
+                source = f"CIPro {self.catalog.release} Wolfram kernel"
             values = {name: result[name] for name in properties}
             for name, value in values.items():
                 expected = bool if name == "CY" else int
@@ -70,12 +106,16 @@ class DashboardServer(ThreadingHTTPServer):
                     raise ValueError(f"Unexpected Wolfram value for {name}")
         except KernelUnavailable as exc:
             raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
+        except (CloudConfigurationError, CloudAuthenticationError, CloudUnavailableError) as exc:
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
+        except CloudError as exc:
+            raise RequestError(HTTPStatus.BAD_GATEWAY, str(exc)) from exc
         except (EvaluationError, TypeError, KeyError, ValueError) as exc:
-            LOGGER.warning("CIPro evaluation did not return the requested scalar properties: %s", exc)
-            raise RequestError(HTTPStatus.BAD_GATEWAY, "CIPro did not return the requested values. See the server log.") from exc
+            LOGGER.warning("CIPro %s evaluation did not return the requested scalar properties.", self.provider)
+            raise RequestError(HTTPStatus.BAD_GATEWAY, "CIPro did not return the requested values.") from exc
         finally:
             self.compute_lock.release()
-        return {"source": "CIPro v1.0 Wolfram kernel", "properties": values}
+        return {"source": source, "properties": values}
 
 
 def _json_bytes(value) -> bytes:
@@ -101,7 +141,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise RequestError(HTTPStatus.BAD_REQUEST, "Give one positive record ID in the query string.")
                 self._json(HTTPStatus.OK, asdict(self._record(int(match[1]))))
             elif target.path == "/api/kernel" and not target.query:
-                self._json(HTTPStatus.OK, {"enabled": self.server.kernel_enabled})
+                self._json(HTTPStatus.OK, self.server.kernel_status())
             else:
                 raise RequestError(HTTPStatus.NOT_FOUND, "Unknown dashboard route.")
         except RequestError as exc:
@@ -211,11 +251,13 @@ def _unique_fields(pairs):
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765, help="loopback port, or 0 for an available port")
-    parser.add_argument("--kernel", action="store_true", help="permit CIPro evaluation through a local Wolfram kernel")
+    providers = parser.add_mutually_exclusive_group()
+    providers.add_argument("--kernel", action="store_true", help="permit CIPro evaluation through a local Wolfram kernel")
+    providers.add_argument("--cloud", action="store_true", help="permit CIPro evaluation through the configured Wolfram Cloud API")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
         parser.error("--port must be 0–65535")
-    with DashboardServer(args.port, kernel=args.kernel) as server:
+    with DashboardServer(args.port, kernel=args.kernel, cloud=args.cloud) as server:
         print(f"CIPro dashboard: http://127.0.0.1:{server.server_port}/", flush=True)
         try:
             server.serve_forever()
