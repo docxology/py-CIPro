@@ -26,8 +26,8 @@ button:disabled { cursor: default; opacity: .48; }
 a { color: var(--accent); text-underline-offset: 3px; }
 :focus-visible { outline: 3px solid #117a6c; outline-offset: 3px; }
 [hidden] { display: none !important; }
-.skip-link { position: fixed; z-index: 8; top: .65rem; left: .65rem; padding: .55rem .75rem; background: var(--white); transform: translateY(-180%); }
-.skip-link:focus { transform: none; }
+.skip-link { position: fixed; z-index: 8; top: .65rem; left: .65rem; padding: .55rem .75rem; background: var(--white); clip-path: inset(50%); }
+.skip-link:focus { clip-path: none; }
 .site-header { background: #f9fbf6; border-bottom: 1px solid var(--line); }
 .header-inner, main { width: min(100% - 5.5rem, 1440px); margin-inline: auto; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 68px; }

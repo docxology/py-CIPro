@@ -224,7 +224,7 @@
 .integral-scope-report { min-height: 2.2em; margin: .65rem 0 -.1rem; }
 .integral-map-note { padding: .1rem .8rem .65rem; margin: 0; font-size: .72rem; line-height: 1.5; color: var(--dim); }
 .integral-map-scroll { overflow-x: auto; }
-.integral-map { min-width: 500px; }
+.integral-map { min-width: 0; }
 .integral-cell { fill: var(--research-positive); }
 .integral-empty { fill: var(--plot-bar-empty); opacity: .24; }
 .integral-cell-button { cursor: pointer; outline-offset: 1px; }
@@ -282,7 +282,8 @@
   .research-provenance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .research-figure-heading, .research-caption { padding-inline: .85rem; }
   .research-ticks, .research-axis-title, .research-annotation { font-size: 14px; }
-  .integral-map .research-ticks, .integral-map .research-axis-title { font-size: 13px; }
+  .integral-map .research-ticks, .integral-map .research-axis-title { font-size: 16px; }
+  .integral-map .integral-cell-count { font-size: 15px; }
   .integral-witnesses { gap: .5rem; padding: .65rem; }
   .integral-witness { padding: .7rem; }
   .integral-witness-geometry { font-size: 1.35rem; }
