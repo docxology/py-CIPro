@@ -18,6 +18,7 @@ from ._client import CIPro, EvaluationError, KernelUnavailable
 from ._dashboard_examples import EXAMPLES
 from ._dashboard_research import (
     ANALYSIS_NAME,
+    COVER_PREVIEW_NAME,
     PDF_NAMES,
     PROVENANCE_NAME,
     STUDY_DATA,
@@ -45,6 +46,7 @@ STATIC = {
     "/method-lab.js": ("method-lab.js", "text/javascript"),
     "/research.js": ("research.js", "text/javascript"),
     "/research.css": ("research.css", "text/css"),
+    "/integral-lattice.js": ("integral-lattice.js", "text/javascript"),
 }
 RESEARCH_PDFS = {f"/research/{name}": name for name in PDF_NAMES}
 RESEARCH_DATA = {f"/research/{name}": name for name in STUDY_DATA}
@@ -197,6 +199,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             elif target.path in RESEARCH_PDFS and not target.query:
                 name = RESEARCH_PDFS[target.path]
                 self._reply(HTTPStatus.OK, self.server.research().bodies[name], "application/pdf", filename=name)
+            elif target.path == f"/research/{COVER_PREVIEW_NAME}" and not target.query:
+                self._reply(HTTPStatus.OK, self.server.research().bodies[COVER_PREVIEW_NAME],
+                            "image/png", filename=COVER_PREVIEW_NAME)
             elif target.path in RESEARCH_DATA and not target.query:
                 name = RESEARCH_DATA[target.path]
                 self._reply(HTTPStatus.OK, self.server.research().bodies[name], "application/json", filename=name)
@@ -313,7 +318,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def _reply(self, status, body, content_type, *, filename=None):
         self.send_response(status)
-        media = content_type if content_type == "application/pdf" else f"{content_type}; charset=utf-8"
+        media = content_type if content_type in ("application/pdf", "image/png") else f"{content_type}; charset=utf-8"
         self.send_header("Content-Type", media)
         self.send_header("Content-Length", str(len(body)))
         if filename is not None:

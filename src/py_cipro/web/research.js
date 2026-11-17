@@ -1,3 +1,5 @@
+import { renderIntegralLattice } from "./integral-lattice.js";
+
 const count = new Intl.NumberFormat("en-US");
 const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 const svgNamespace = "http://www.w3.org/2000/svg";
@@ -36,7 +38,9 @@ function section(root, id, title, caption, filename, hasData = false) {
   figure.id = `research-${id}`;
   figure.setAttribute("aria-labelledby", `${figure.id}-heading`);
   const header = node("header", "", "research-figure-heading");
-  const heading = node("h3", title);
+  const number = figures.findIndex(([figureId]) => figureId === id) + 1;
+  const heading = node("h3");
+  heading.append(node("span", `Figure ${number}`, "research-figure-number"), document.createTextNode(title));
   heading.id = `${figure.id}-heading`;
   const actions = node("div", "", "research-figure-links");
   const download = link("Download vector PDF", `/research/${filename}.pdf`, "text-button");
@@ -981,12 +985,19 @@ function bicubicExact(root, data, openRecords) {
   bicubicDiagonalPanel(figure, data, openRecords);
 }
 
+function integralInvariants(root, data, openRecords) {
+  renderIntegralLattice(root, data, openRecords, {
+    section, panel, field, node, svgNode, runAction, recordAction, count,
+  });
+}
+
 const figures = [
   ["chern-audit", "Polarized degrees and Chern pairings", chernAudit, "chern-audit"],
   ["atlas", "Hodge and Euler atlas", atlas],
   ["multiplicity", "Hodge-pair multiplicity", multiplicity],
   ["structure", "Configuration structure", structure],
   ["atlas-comparison", "Atlas weighting", atlasComparison, "atlas-comparison"],
+  ["integral-invariants", "Integral lattice divisibility", integralInvariants, "integral-invariants"],
   ["cohomology", "Line-bundle calculations", cohomology],
   ["bicubic-exact", "Exact bicubic cohomology", bicubicExact, "bicubic-exact"],
 ];
@@ -998,24 +1009,42 @@ function intro(root) {
   header.id = "research-heading";
   root.setAttribute("aria-labelledby", header.id);
   const title = node("p", "", "research-paper-title");
+  const author = node("p", "", "research-paper-author");
   const actions = node("div", "", "research-cover-actions");
   const manuscript = link("Open manuscript PDF", "/research/manuscript.pdf", "button hero-button");
   manuscript.target = "_blank";
   manuscript.rel = "noopener";
   const figuresLink = link("Explore the figures", "#research-figures", "button secondary-hero");
   actions.append(manuscript, figuresLink);
-  text.append(header, title,
-    node("p", "Inspect all seven figures, trace each selection to the archive, and rerun exact calculations with Python."),
+  text.append(header, title, author,
+    node("p", "Inspect all eight numbered figures, trace selections to the archive, and rerun exact calculations with Python."),
     actions);
+  const visual = node("figure", "", "research-cover-visual");
+  const abstractLink = link("", "/research/graphical-abstract.pdf");
+  abstractLink.target = "_blank";
+  abstractLink.rel = "noopener";
+  const image = node("img");
+  image.src = "/research/graphical-abstract.png";
+  image.alt = "Graphical abstract showing exact Chern pairings, two catalogue weightings, bicubic cohomology jumps, and integral lattice divisibility.";
+  image.loading = "lazy";
+  image.decoding = "async";
+  abstractLink.append(image);
+  const visualCaption = node("figcaption");
+  const png = link("Download PNG", "/research/graphical-abstract.png");
+  png.download = "graphical-abstract.png";
+  visualCaption.append(link("Graphical abstract · open vector PDF", "/research/graphical-abstract.pdf"), png);
+  visual.append(abstractLink, visualCaption);
   const provenance = node("dl", "", "research-provenance");
   provenance.hidden = true;
-  cover.append(text, provenance);
+  cover.append(text, visual, provenance);
   root.append(cover);
-  return { title, provenance };
+  return { title, author, image, provenance };
 }
 
 function showProvenance(display, data) {
   if (data.manuscript_title) display.title.textContent = data.manuscript_title;
+  if (data.manuscript_author) display.author.textContent = data.manuscript_author;
+  if (data.cover?.alt_text) display.image.alt = data.cover.alt_text;
   for (const [label, value] of [
     ["Rendered manuscript", data.manuscript_pages && `${data.manuscript_pages} pages`],
     ["Source revision", data.source_commit?.slice(0, 12)],
@@ -1041,7 +1070,9 @@ export async function initializeResearch({ openRecords }) {
   jump.id = "research-figures";
   const heading = node("h3", "Interactive manuscript figures");
   const links = node("div", "", "research-jump-links");
-  for (const [id, title] of figures) links.append(link(title, `#research-${id}`, "text-button"));
+  for (const [index, [id, title]] of figures.entries()) {
+    links.append(link(`${index + 1}. ${title}`, `#research-${id}`, "text-button"));
+  }
   jump.append(heading, links);
   root.append(jump);
   const status = node("p", "Loading manuscript figure data…", "research-status");

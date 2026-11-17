@@ -61,7 +61,9 @@ function readView() {
 
 function writeView() {
   const url = new URL(location.href)
+  const lattice = url.searchParams.get('lattice')
   url.search = ''
+  if (lattice) url.searchParams.set('lattice', lattice)
   if (state.query) url.searchParams.set('q', state.query)
   if (state.favourable !== 'all') url.searchParams.set('fav', state.favourable)
   if (state.product !== 'all') url.searchParams.set('product', state.product)

@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from py_cipro import CIPro, Evaluation, wl
+from py_cipro._dashboard_research import recompute_study
 from py_cipro.dashboard import DashboardServer, MAX_COMPUTE_BODY, MAX_LAB_BODY, NATIVE_TIMEOUT
 
 
@@ -94,14 +95,18 @@ class DashboardTests(unittest.TestCase):
         status, _, data = self.request("GET", "/api/research/provenance")
         self.assertEqual(status, 200)
         provenance = json.loads(data)
-        self.assertEqual(provenance["manuscript_pages"], 19)
+        self.assertGreaterEqual(provenance["manuscript_pages"], 22)
+        self.assertEqual(provenance["manuscript_author"], "Daniel Friedman")
+        self.assertTrue(provenance["cover"]["alt_text"])
         self.assertEqual(provenance["archive_sha256"], self.server.catalog.sha256)
         self.assertEqual(provenance["dataset_sha256"], self.server.catalog.member_sha256)
         self.assertEqual(set(provenance["figures"]), {
             "chern-audit", "cicy3-atlas", "cicy3-structure", "cicy3-multiplicity",
-            "atlas-comparison", "line-bundle-cohomology", "bicubic-exact",
+            "atlas-comparison", "line-bundle-cohomology", "bicubic-exact", "integral-invariants",
         })
-        self.assertEqual(len(provenance["assets_sha256"]), 12)
+        self.assertEqual(len(provenance["assets_sha256"]), 16)
+        self.assertIn("graphical-abstract.pdf", provenance["assets_sha256"])
+        self.assertIn("graphical-abstract.png", provenance["assets_sha256"])
         for name, digest in provenance["assets_sha256"].items():
             route = "/api/research" if name == "manuscript-analysis.json" else f"/research/{name}"
             with self.subTest(route=route):
@@ -115,13 +120,16 @@ class DashboardTests(unittest.TestCase):
                     head_status, head_headers, head_body = self.request("HEAD", route)
                     self.assertEqual((head_status, head_body), (200, b""))
                     self.assertIn(("Content-Length", str(len(body))), head_headers)
+                if name.endswith(".png"):
+                    self.assertTrue(body.startswith(b"\x89PNG\r\n\x1a\n"))
+                    self.assertIn(("Content-Type", "image/png"), headers)
         self.assertEqual(self.request("GET", "/research/other.pdf")[0], 404)
 
     def test_extended_studies_use_exact_manuscript_data_and_catalogue_cohorts(self):
         status, _, body = self.request("GET", "/api/research/studies")
         self.assertEqual(status, 200)
         studies = json.loads(body)
-        self.assertEqual(set(studies), {"chern-audit", "atlas-comparison", "bicubic-exact"})
+        self.assertEqual(set(studies), {"chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants"})
         for name, study in studies.items():
             status, _, body = self.request("GET", f"/research/{name}.json")
             self.assertEqual(status, 200)
@@ -193,6 +201,88 @@ class DashboardTests(unittest.TestCase):
         ):
             self.assertEqual(self.post(payload, route)[0], 400, payload)
         self.assertEqual(self.post({"figure": "atlas-comparison"}, route, Origin="https://example.invalid")[0], 403)
+
+    def test_integral_heatmap_selects_exact_archive_ids(self):
+        status, _, body = self.request("GET", "/research/integral-invariants.json")
+        self.assertEqual(status, 200)
+        rows = json.loads(body)["rows"]
+        pair = [row for row in rows if (row["cubic_content"], row["chern_content"]) == (1, 4)]
+        route = "/api/research/records?figure=integral-invariants&"
+        for query, ids in (
+            ("cubic_content=1&chern_content=4", [row["id"] for row in pair]),
+            ("cubic_content=1&chern_content=4&h11=9&h21=21", [
+                row["id"] for row in pair if row["hodge"] == [9, 21]
+            ]),
+            ("cubic_content=1&chern_content=4&euler=-24", [
+                row["id"] for row in pair if row["euler"] == -24
+            ]),
+            ("record_id=7878", [7878]),
+            ("cubic_content=99&chern_content=99", []),
+        ):
+            with self.subTest(query=query):
+                status, _, body = self.request("GET", route + query)
+                data = json.loads(body)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(data["ids"], ids)
+                self.assertEqual(data["matched"], len(ids))
+        product = next(record.id for record in self.server.catalog.records if record.product)
+        for invalid in (
+            "cubic_content=1",
+            "cubic_content=1&chern_content=4&h11=9",
+            "cubic_content=1&chern_content=-1",
+            "cubic_content=1&chern_content=4&cubic_content=1",
+            f"record_id={product}",
+        ):
+            self.assertEqual(self.request("GET", route + invalid)[0], 400, invalid)
+
+    def test_integral_reruns_use_the_selected_source_geometry(self):
+        route = "/api/research/rerun"
+        with patch.object(self.server.kernel, "call_result") as wolfram:
+            for number, dimensions, configuration, hodge, pair, c2, indices in (
+                (7878, [5], [[3, 3]], [1, 73], (9, 54), [54], [6]),
+                (7879, [6], [[3, 2, 2]], [1, 73], (12, 60), [60], [7]),
+                (1258, None, None, [9, 21], (1, 12), [24, 24, 24, 36, 36], [2, 2, 2, 3, 3]),
+            ):
+                with self.subTest(record_id=number):
+                    status, _, body = self.request("GET", f"/api/record?id={number}")
+                    self.assertEqual(status, 200)
+                    archived = json.loads(body)
+                    if dimensions is not None:
+                        self.assertEqual(archived["ambient_dimensions"], dimensions)
+                        self.assertEqual(archived["configuration"], configuration)
+                    status, _, body = self.post({"figure": "integral-invariants", "record_id": number}, route,
+                                                Origin=self.origin)
+                    self.assertEqual(status, 200, body)
+                    response = json.loads(body)
+                    self.assertEqual(response["backend"], "python")
+                    self.assertEqual(response["record_id"], number)
+                    self.assertTrue(response["matches_manuscript"])
+                    self.assertEqual(response["result"], response["manuscript"])
+                    self.assertEqual(response["result"], {
+                        "id": number,
+                        "ambient_factors": len(archived["ambient_dimensions"]),
+                        "favourable": archived["favourable"],
+                        "hodge": hodge,
+                        "euler": archived["euler"],
+                        "cubic_content": pair[0],
+                        "chern_content": pair[1],
+                        "c2": c2,
+                        "hyperplane_indices": indices,
+                    })
+            wolfram.assert_not_called()
+        product_id = next(record.id for record in self.server.catalog.records if record.product)
+        for invalid in (True, 0, 7891, product_id):
+            self.assertEqual(self.post({"figure": "integral-invariants", "record_id": invalid}, route)[0], 400)
+        self.assertEqual(self.post({"figure": "integral-invariants", "record_id": 7878, "backend": "wolfram"},
+                                   route)[0], 400)
+
+    def test_integral_worker_compares_only_after_recomputation(self):
+        reference = {"cubic_content": 1, "chern_content": 1}
+        result = recompute_study({"research": "integral-invariants", "record_id": 7878, "manuscript": reference})
+        self.assertEqual(result["result"]["cubic_content"], 9)
+        self.assertEqual(result["result"]["chern_content"], 54)
+        self.assertEqual(result["manuscript"], reference)
+        self.assertFalse(result["matches_manuscript"])
 
     def test_research_mark_selection_returns_exact_archive_ids(self):
         records = self.server.catalog.records

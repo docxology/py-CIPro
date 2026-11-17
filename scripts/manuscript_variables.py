@@ -291,11 +291,14 @@ def build_variables(root):
     formatted = {name: as_text(value) for name, value in variables.items()}
     evidence_paths = [
         "pyproject.toml",
+        "manuscript/config.yaml",
         "src/py_cipro/_catalog.py",
         "src/py_cipro/_native.py",
         "src/py_cipro/_research_atlas.py",
         "src/py_cipro/_research_bicubic.py",
         "src/py_cipro/_research_chern.py",
+        "src/py_cipro/_research_integral.py",
+        "src/py_cipro/_research_integral.py",
         "src/py_cipro/_dashboard_examples.py",
         "src/py_cipro/_release.py",
         "src/py_cipro/catalog.py",

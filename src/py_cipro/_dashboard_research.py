@@ -1,11 +1,12 @@
 """Bind manuscript figures and fresh native calculations to the released archive."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 from importlib.resources import files
 import json
+from math import gcd
 import re
 from urllib.parse import parse_qsl
 
@@ -13,13 +14,17 @@ from ._native_errors import NativeUnsupportedError
 from ._research_atlas import atlas_comparison
 from ._research_bicubic import COEFFICIENTS, bicubic_study_row
 from ._research_chern import polarized_invariants
-from .catalog import get_catalog
+from ._research_integral import integral_invariants
+from .catalog import _cicy3_source_rows, get_catalog
 
 
-STUDY_NAMES = ("chern-audit", "atlas-comparison", "bicubic-exact")
+INTEGRAL_STUDY = "integral-invariants"
+COVER_PREVIEW_NAME = "graphical-abstract.png"
+STUDY_NAMES = ("chern-audit", "atlas-comparison", "bicubic-exact", INTEGRAL_STUDY)
 STUDY_DATA = tuple(f"{name}.json" for name in STUDY_NAMES)
 PDF_NAMES = (
     "manuscript.pdf",
+    "graphical-abstract.pdf",
     "cicy3-atlas.pdf",
     "cicy3-structure.pdf",
     "cicy3-multiplicity.pdf",
@@ -43,12 +48,14 @@ class ResearchBundle:
 def research_bundle():
     """Read packaged assets by fixed name and check them against their manifest."""
     directory = files("py_cipro").joinpath("research_data")
-    asset_names = (ANALYSIS_NAME, *PDF_NAMES, *STUDY_DATA)
+    asset_names = (ANALYSIS_NAME, *PDF_NAMES, COVER_PREVIEW_NAME, *STUDY_DATA)
     bodies = {name: directory.joinpath(name).read_bytes() for name in (*asset_names, PROVENANCE_NAME)}
     provenance = json.loads(bodies[PROVENANCE_NAME])
     digests = {name: sha256(bodies[name]).hexdigest() for name in asset_names}
     if provenance.get("assets_sha256") != digests:
         raise ValueError("The bundled research asset digests do not match their provenance.")
+    if provenance["cover"]["studies_sha256"] != {name: digests[f"{name}.json"] for name in STUDY_NAMES}:
+        raise ValueError("The bundled graphical abstract uses a different study record.")
     analysis = json.loads(bodies[ANALYSIS_NAME])
     if analysis.get("schema_version") != 1:
         raise ValueError("The bundled research analysis uses an unsupported schema.")
@@ -59,7 +66,69 @@ def research_bundle():
         raise ValueError("The exact bicubic study uses a different native receipt.")
     if bicubic["coefficient_matrix"] != [list(row) for row in COEFFICIENTS]:
         raise ValueError("The exact bicubic study uses a different smooth member.")
+    _verify_integral_study(studies[INTEGRAL_STUDY], get_catalog())
     return ResearchBundle(bodies, analysis, provenance, studies)
+
+
+def _integral_pair(row):
+    return row["cubic_content"], row["chern_content"]
+
+
+def _matching_integral_cells(cells, expected):
+    reported = {_integral_pair(cell): (cell["count"], cell["record_ids"]) for cell in cells}
+    return len(reported) == len(cells) and reported == {key: (len(ids), ids) for key, ids in expected.items()}
+
+
+def _verify_integral_study(study, catalog):
+    """Check the plotted cells and source records once when the retained assets are read."""
+    nonproducts = (record for record in catalog.records if not record.product)
+    sources = _cicy3_source_rows()
+    joint = defaultdict(list)
+    hodge = defaultdict(lambda: defaultdict(list))
+    euler = defaultdict(lambda: defaultdict(list))
+    for row, record in zip(study["rows"], nonproducts, strict=True):
+        hodge_pair = (record.h11, record.h21)
+        rank = len(record.ambient_dimensions)
+        source = sources[record.id - 1]
+        if (
+            (row["id"], row["ambient_factors"], row["favourable"], tuple(row["hodge"]), row["euler"])
+            != (record.id, rank, record.favourable, hodge_pair, record.euler)
+            or tuple(row["c2"]) != source["C"][1] or len(row["hyperplane_indices"]) != rank
+            or row["chern_content"] != gcd(*row["c2"])
+            or type(row["cubic_content"]) is not int or row["cubic_content"] < 1
+        ):
+            raise ValueError("The integral-lattice study does not match the CICY3 source rows.")
+        pair = _integral_pair(row)
+        joint[pair].append(record.id)
+        hodge[hodge_pair][pair].append(record.id)
+        euler[record.euler][pair].append(record.id)
+    if not _matching_integral_cells(study["joint"], joint):
+        raise ValueError("The integral-lattice plot counts do not match the source rows.")
+    summary = study["summary"]
+    if (summary["records"], summary["joint_pairs"], summary["hodge_groups"], summary["euler_groups"],
+        summary["split_hodge_groups"], summary["split_euler_groups"]) != (
+        len(study["rows"]), len(joint), len(hodge), len(euler),
+        sum(len(cells) > 1 for cells in hodge.values()),
+        sum(len(cells) > 1 for cells in euler.values()),
+    ):
+        raise ValueError("The integral-lattice summary does not match the plotted cohorts.")
+    for key, cohorts in (("hodge", hodge), ("euler", euler)):
+        reported = {(tuple(group[key]) if key == "hodge" else group[key]): group["cells"] for group in study[key]}
+        if (
+            len(reported) != len(study[key]) or reported.keys() != cohorts.keys()
+            or any(not _matching_integral_cells(reported[value], cells) for value, cells in cohorts.items())
+        ):
+            raise ValueError("The integral-lattice cohort counts do not match the source rows.")
+    rows = {row["id"]: row for row in study["rows"]}
+    for witness in study["witness"]:
+        reference = rows[witness["id"]]
+        record = catalog.record(witness["id"])
+        if (
+            any(witness[key] != value for key, value in reference.items())
+            or record.ambient_dimensions != (witness["ambient_dimension"],)
+            or record.configuration != (tuple(witness["degrees"]),)
+        ):
+            raise ValueError("The integral-lattice witness does not match its source record.")
 
 
 def verify_catalog_binding(bundle, catalog):
@@ -198,6 +267,40 @@ def _atlas_comparison_selection(fields, records):
     raise ValueError("Select an Euler threshold, an ambient factor count, or the full weighting study.")
 
 
+def _integral_record(study, record_id):
+    reference = next((row for row in study["rows"] if row["id"] == record_id), None)
+    if reference is None:
+        raise ValueError("Select an archived non-product record from the integral-lattice study.")
+    return reference
+
+
+def _integral_selection(fields, study):
+    if fields.keys() == {"record_id"}:
+        record_id = _number(fields["record_id"])
+        reference = _integral_record(study, record_id)
+        cubic, chern = _integral_pair(reference)
+        return [record_id], f"Record {record_id} · cubic content {cubic} · Chern content {chern}"
+
+    required = {"cubic_content", "chern_content"}
+    if fields.keys() not in (required, required | {"h11", "h21"}, required | {"euler"}):
+        raise ValueError("Select both lattice contents and optionally a Hodge pair or Euler characteristic.")
+    cubic, chern = (_number(fields[key]) for key in ("cubic_content", "chern_content"))
+    if cubic < 1 or chern < 0:
+        raise ValueError("Cubic content must be positive and Chern content nonnegative.")
+    label = f"Cubic content {cubic} · Chern content {chern}"
+    cells = study["joint"]
+    if "h11" in fields:
+        hodge = [_number(fields["h11"]), _number(fields["h21"])]
+        cells = next((group["cells"] for group in study["hodge"] if group["hodge"] == hodge), [])
+        label += f" · Hodge pair {tuple(hodge)}"
+    elif "euler" in fields:
+        euler = _number(fields["euler"])
+        cells = next((group["cells"] for group in study["euler"] if group["euler"] == euler), [])
+        label += f" · Euler characteristic {euler}"
+    ids = next((cell["record_ids"] for cell in cells if _integral_pair(cell) == (cubic, chern)), [])
+    return ids, label
+
+
 def record_selection(query, analysis, catalog, studies=None):
     fields = _query_fields(query)
     figure = fields.pop("figure", None)
@@ -218,6 +321,8 @@ def record_selection(query, analysis, catalog, studies=None):
     elif figure == "bicubic-exact" and not fields and studies is not None:
         record = catalog.record(studies[figure]["record"])
         ids, label = [record.id], "Bicubic · source configuration for the specified smooth member"
+    elif figure == INTEGRAL_STUDY and studies is not None:
+        ids, label = _integral_selection(fields, studies[figure])
     else:
         raise ValueError("Choose a valid manuscript figure selection.")
     return {"ids": ids, "matched": len(ids), "label": label}
@@ -299,6 +404,9 @@ def prepare_research(payload, bundle, catalog):
             raise ValueError("Select one plotted Euler threshold or ambient factor count.")
         selector = dict(zip(keys, _study_values(payload, keys), strict=True))
         return {"research": figure, "selector": selector, "manuscript": _atlas_comparison_result(study, selector)}
+    if figure == INTEGRAL_STUDY:
+        (record_id,) = _study_values(payload, ("record_id",))
+        return {"research": figure, "record_id": record_id, "manuscript": _integral_record(study, record_id)}
     a, b = _study_values(payload, ("a", "b"))
     reference = next((row for row in study["rows"] if (row["a"], row["b"]) == (a, b)), None)
     if reference is None:
@@ -321,6 +429,11 @@ def recompute_study(payload):
         a, b = payload["charges"]
         result = bicubic_study_row(a, b, manuscript["native_supported"])
         source = "Exact rational ranks for the manuscript's specified smooth bicubic."
+    elif figure == INTEGRAL_STUDY:
+        record_id = payload["record_id"]
+        record = get_catalog().record(record_id)
+        result = integral_invariants(record, _cicy3_source_rows()[record_id - 1])
+        source = "Exact ambient cubic and second Chern content with Riemann–Roch checks."
     else:
         raise ValueError("Unknown manuscript study.")
     return {

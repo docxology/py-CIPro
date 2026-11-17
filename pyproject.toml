@@ -21,4 +21,4 @@ where = ["src"]
 include = ["py_cipro*"]
 
 [tool.setuptools.package-data]
-py_cipro = ["vendor/CIProPackage.zip", "web/*.html", "web/*.css", "web/*.js", "research_data/*.json", "research_data/*.pdf"]
+py_cipro = ["vendor/CIProPackage.zip", "web/*.html", "web/*.css", "web/*.js", "research_data/*.json", "research_data/*.pdf", "research_data/*.png"]

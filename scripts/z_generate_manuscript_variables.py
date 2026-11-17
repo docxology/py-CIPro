@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import sys
 
+import yaml
+
 from infrastructure.documentation.generated_figure_registry import publish_generated_figures
 from infrastructure.rendering.manuscript_injection import (
     substitute_manuscript_text,
@@ -63,6 +65,11 @@ def main():
     root = Path(__file__).resolve().parents[1]
     variables, evidence = build_variables(root)
     validate_tokens(root, variables)
+    config = yaml.safe_load((root / "manuscript" / "config.yaml").read_text(encoding="utf-8"))
+    evidence["manuscript"] = {
+        "title": config["paper"]["title"],
+        "author": ", ".join(author["name"] for author in config["authors"]),
+    }
     specs = figures_from_source(root, variables)
     publish_generated_figures(
         root / "output" / "figures",
@@ -75,6 +82,7 @@ def main():
     cover_png = cover / "graphical-abstract.png"
     cover_record = render_graphical_abstract(root / "data", cover_pdf, cover_png)
     evidence["cover"] = {
+        "alt_text": config["paper"]["cover"]["alt"],
         "inputs_sha256": cover_record["data_sha256"],
         "size_inches": cover_record["size_inches"],
         "outputs_sha256": {

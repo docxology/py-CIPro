@@ -11,19 +11,21 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Use `--port 8765` to sele
 
 ## Read and reproduce the manuscript figures
 
-Open **Manuscript** to read the PDF and explore its seven figures. The dashboard
-serves the 19-page revised render and each standalone vector figure from
-the installed package. The interactive panels use the same source data as
-the manuscript figures. The manuscript and figure provenance identifies the
-rendered source revision, renderer, and archive digests. [Manuscript build](manuscript.md)
+Open **Manuscript** to read Daniel Friedman's revised PDF and explore its
+eight figures. The graphical abstract appears with the cover links and is
+available as a stand-alone PDF and PNG. The manuscript includes numbered
+notation and methods concordance tables. The interactive panels use the
+same data as the figures. The provenance records the manuscript revision,
+renderer, archive digests, and checksums for the served files. [Manuscript build](manuscript.md)
 
 | Figure | Select a plotted value to inspect |
 | --- | --- |
 | Polarized degrees and Chern pairings | A polarized degree and pairing, optionally restricted to the modal Hodge pair |
 | Threefold archive | A non-product Hodge pair or an exact Euler characteristic |
-| Configuration size and favorability | A configuration shape or the non-product records in one ambient factor group |
 | Hodge-pair multiplicity | A ranked group, a prefix of the cumulative distribution, or a multiplicity bin |
+| Configuration size and favorability | A configuration shape or the non-product records in one ambient factor group |
 | Catalogue weighting | An Euler threshold, an ambient factor count, or the full non-product population |
+| Integral content of cubic and Chern data | A joint divisibility cell in the archive or a selected Hodge or Euler group, or one of the two rank-one witness records |
 | Line-bundle cohomology | A quintic degree or a bicubic charge pair, alongside the source configuration |
 | Exact bicubic cohomology | An integer charge pair for the explicit smooth member used in the manuscript |
 
@@ -33,6 +35,17 @@ the catalogue. The catalogue URL retains the figure selection and the
 selected record ID. Select a record and choose **Run in Python** to recompute
 its properties even when the main compute control is set to Wolfram or Auto.
 
+In the integral-lattice figure, select a cell and inspect the matching
+archive IDs. A Hodge or Euler filter restricts the joint table to that group.
+Choose a record to view its configuration or rerun its exact calculation
+in Python. The result reports the cubic gcd, second Chern gcd, individual
+Chern evaluations, and hyperplane indices, alongside the saved study row.
+The two rank-one examples share Hodge pair `(1, 73)` and Euler characteristic
+`-144`. Records `7878` and `7879` yield `(9, 54)` and `(12, 60)`,
+respectively. The interactive census uses the ambient divisor lattice
+of each presentation. The manuscript justifies the use of the full
+integral lattice for those two examples.
+
 In the cohomology figure, choose a charge and run the Python calculation to
 compare a fresh `CohLBS` dimension vector and `IndLBS` index with the
 manuscript values. The plotted domain spans quintic degrees −10 through 10
@@ -41,7 +54,8 @@ the exact index while their dimensions are outside the native implementation's
 domain. The result reports those dimensions as unavailable and shows the
 calculated index. The original configuration is linked in each panel.
 
-The three additional figures provide **Rerun in Python** actions. The Chern
+The Chern audit, catalogue weighting, and exact bicubic figures also
+provide **Rerun in Python** actions. The Chern
 audit integrates the selected record's configuration in the ambient ring and
 returns its degree, ordered second Chern pairings, and polarized index. The
 weighting figure recomputes the selected threshold, factor group, or pooled
@@ -50,7 +64,8 @@ bicubic figure computes rational multiplication-map ranks for the explicit
 equation shown in the manuscript, then reports its cohomology dimensions,
 the generic comparison, and the index. Archive record 7884 gives the
 configuration of that example. The coefficients specify a particular smooth
-member of that configuration. The three studies include standalone JSON data.
+member of that configuration. These studies and the integral-lattice
+study include standalone JSON data.
 
 ## Select a compute backend
 

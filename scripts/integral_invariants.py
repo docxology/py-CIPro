@@ -3,74 +3,15 @@
 
 import argparse
 from collections import Counter, defaultdict
-from itertools import combinations, combinations_with_replacement
 import json
-from math import gcd, prod
+from math import prod
 from pathlib import Path
 
-from check_intersections import multiply
+from py_cipro._research_integral import integral_invariants
 from py_cipro.catalog import _cicy3_source_rows, get_catalog
 
 
 WITNESS_IDS = (7878, 7879)
-
-
-def compute_record(record, source):
-    dimensions = record.ambient_dimensions
-    rank = len(dimensions)
-    columns = [
-        tuple((i, degree) for i, degree in enumerate(column) if degree)
-        for column in zip(*record.configuration, strict=True)
-    ]
-    zero = (0,) * rank
-    units = [zero[:i] + (1,) + zero[i + 1:] for i in range(rank)]
-    fundamental = {zero: 1}
-    for column in sorted(columns, key=len):
-        divisor = {units[i]: degree for i, degree in column}
-        fundamental = multiply(fundamental, divisor, dimensions)
-
-    def cubic(i, j, k):
-        complement = list(dimensions)
-        for index in (i, j, k):
-            complement[index] -= 1
-        return fundamental.get(tuple(complement), 0)
-
-    # Mixed square terms occur twice in the quadratic Newton identity.
-    quadratic = Counter({(i, i): -(n + 1) for i, n in enumerate(dimensions)})
-    for column in columns:
-        for (i, a), (j, b) in combinations_with_replacement(column, 2):
-            quadratic[i, j] += a * b * (1 if i == j else 2)
-    quadratic_terms = [(i, j, value) for (i, j), value in quadratic.items() if value]
-    pairings = []
-    for k in range(rank):
-        twice_chern = sum(value * cubic(i, j, k) for i, j, value in quadratic_terms)
-        pairing, remainder = divmod(twice_chern, 2)
-        if remainder:
-            raise ValueError(f"Nonintegral second Chern pairing for record {record.id}")
-        pairings.append(pairing)
-    if tuple(pairings) != source["C"][1]:
-        raise ValueError(f"Second Chern pairings disagree with the archive for record {record.id}")
-
-    # Complement gives a bijection between surviving coefficients and nonzero d_ijk.
-    g3, g2 = gcd(*fundamental.values()), gcd(*pairings)
-    diagonal = [cubic(i, i, i) for i in range(rank)]
-    indices = [divmod(2 * degree + pairing, 12) for degree, pairing in zip(diagonal, pairings, strict=True)]
-    if any(remainder for _, remainder in indices) or g2 % gcd(2 * g3, 12):
-        raise ValueError(f"Riemann–Roch divisibility failed for record {record.id}")
-    if any((cubic(i, i, j) + cubic(i, j, j)) % 2 for i, j in combinations(range(rank), 2)):
-        raise ValueError(f"Riemann–Roch pairwise parity failed for record {record.id}")
-
-    return {
-        "id": record.id,
-        "ambient_factors": rank,
-        "favourable": record.favourable,
-        "hodge": [record.h11, record.h21],
-        "euler": record.euler,
-        "cubic_content": g3,
-        "chern_content": g2,
-        "c2": pairings,
-        "hyperplane_indices": [value for value, _ in indices],
-    }
 
 
 def cohort_cells(groups):
@@ -96,7 +37,7 @@ def compute_integral_invariants():
     for record, source in zip(catalog.records, _cicy3_source_rows(), strict=True):
         if record.product:
             continue
-        row = compute_record(record, source)
+        row = integral_invariants(record, source)
         rows.append(row)
         pair = (row["cubic_content"], row["chern_content"])
         joint[pair].append(record.id)

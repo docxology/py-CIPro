@@ -55,8 +55,9 @@ the same interpreter for the analysis and manuscript.
 
 ## Recompute the results and figures
 
-Generate all eight figures, the graphical abstract, and the typed result tables into an ignored
-output directory. The comparisons should produce no output.
+Generate all eight figures, the graphical abstract, and the typed result
+tables into an ignored output directory. The comparisons should produce
+no output.
 
 ```sh
 renderer_python="$(pwd -P)/.venv/bin/python"
@@ -94,10 +95,12 @@ the single-atlas workflow.
 
 From the template checkout, run the project producer with the renderer
 environment. It validates required placeholders, stages registered figures,
-renders the graphical abstract, writes structured outputs, and calls the template's manuscript injection
-function. The private project lives outside the renderer's project custody
-root, so run the producer explicitly before Stage 03. Stage 03 consumes the
-hydrated result while retaining its pre-render and publication checks.
+renders the graphical abstract, writes structured outputs, and calls the
+template's manuscript injection function. The private project lives outside
+the renderer's project custody root, so run the producer explicitly before
+Stage 03. Stage 03 consumes the hydrated result while retaining its pre-render
+and publication checks. Install `tocbibind` in a minimal TeX setup for the
+linked bibliography entry.
 
 ```sh
 cd "$render_root/template"
@@ -120,19 +123,20 @@ from `paper.cover` in `manuscript/config.yaml`.
 
 ## Refresh the dashboard's manuscript assets
 
-The v0.7.0 dashboard bundle contains its release manuscript and seven
-interactive figures. To reproduce that bundle, use a verified v0.7.0 export and
-generate `SHA256SUMS` there with relative paths.
+Stage the verified render and regenerated figures and data in an export
+directory. Generate `SHA256SUMS` in that directory with relative paths.
 
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
-- `figures/` contains all seven named PDF exports and `figure_registry.json`.
-- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, and `software_and_analysis.json`.
+- `cover/` contains the rendered `graphical-abstract.pdf` and `graphical-abstract.png`.
+- `figures/` contains all eight named PDF exports and `figure_registry.json`.
+- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, `integral-invariants.json`, and the renderer's `software_and_analysis.json`.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT
 --title TITLE --pages PAGES` from the project checkout. Use the full
 renderer commit and the values reported by `pdfinfo` for the PDF title and
-page count. The script checks the export digests, green template validation,
-and the match to the tracked analysis before updating the files in
+page count. The script checks the export digests, template validation, and
+the bindings between the cover, the study data, and the rendered assets before updating
+the files in
 `src/py_cipro/research_data/`. Rebuild and test the wheel to check the
 packaged routes. [Dashboard guide](dashboard.md)

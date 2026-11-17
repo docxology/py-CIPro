@@ -11,7 +11,7 @@ g_3\mathbb{Z}=\big\langle\mu(x,y,z):x,y,z\in L\big\rangle,
 g_2\mathbb{Z}=\big\langle\lambda(x):x\in L\big\rangle.
 $$ {#eq:integral_content_ideals}
 
-These are the ambient-lattice analogues of $d_1$ and $d_p$ in He, Yao, and Yau, equation 11. For $c_1(TX)=0$, $\operatorname{ch}_2(TX)=-c_2(TX)$, so the second Chern character has the same evaluation ideal. [@he-yao-yau-topology]
+These are the ambient-lattice analogues of $d_1$ and $d_p$ in He, Yao, and Yau, equation (2.11) of the published edition. For $c_1(TX)=0$, $\operatorname{ch}_2(TX)=-c_2(TX)$, so the second Chern character has the same evaluation ideal. [@he-yao-yau-topology]
 :::
 
 ::: {.proposition #prop:integral_content title="Generators and integral changes of basis"}
@@ -34,6 +34,19 @@ $$ {#eq:integral_content_change_basis}
 The new entries generate subideals of the old ones. Applying the same argument to $U^{-1}$ gives the reverse inclusions. The generating-set argument still applies to dependent ambient restrictions. Reversing the choice of orientation negates every evaluation and preserves both nonnegative generators.
 :::
 
+::: {.proposition #prop:integral_content_saturation title="Effect of finite-index restriction"}
+Let $S$ be the saturation of $L$ in the free second cohomology. This is the intersection of its rational span with $H^2(X;\mathbb Z)/\mathrm{torsion}$. Let $e$ be the exponent of the finite quotient $S/L$, with $e=1$ when $S=L$. For the forms of [@def:integral_content], the content ideals satisfy
+
+$$
+\begin{aligned}
+e^3 g_3(S)\mathbb Z &\subseteq g_3(L)\mathbb Z \subseteq g_3(S)\mathbb Z,\\
+e g_2(S)\mathbb Z &\subseteq g_2(L)\mathbb Z \subseteq g_2(S)\mathbb Z .
+\end{aligned}
+$$ {#eq:integral_content_saturation}
+
+The right-hand inclusions follow from $L\subseteq S$. For the left-hand inclusions, multiply every input in $S$ by $e$ to put it in $L$. Trilinearity and linearity supply the respective factors $e^3$ and $e$. In rank one, replacing a primitive generator $H$ by $eH$ gives these factors exactly. Thus even a full-rank ambient image needs a primitivity check before one reads its content as that of the full lattice.
+:::
+
 ::: {.corollary #thm:integral_index_content title="Index congruences for the lattice"}
 For $x\in L$ and a line bundle with first Chern class represented by $x$, Riemann–Roch in [@prop:line_index] gives $2\mu(x,x,x)+\lambda(x)\equiv0\pmod{12}$. Consequently
 
@@ -54,6 +67,10 @@ Of {{INTEGRAL_HODGE_GROUPS}} distinct Hodge groups, {{INTEGRAL_HODGE_SPLIT}} con
 
 ![Cubic and second Chern content in the released CIPro archive. (A) Occupied cells show exact counts for the {{INTEGRAL_PAIR_COUNT}} observed pairs among {{INTEGRAL_RECORD_COUNT}} non-product configurations, with a logarithmic color scale. The axes show the occupied integer levels for each invariant. Empty cells have zero records. (B) Two rank-one ample complete intersections share their Hodge pair and Euler characteristic and have different content on the full integral second cohomology. The degrees and record IDs trace both computations to the release.](../output/figures/integral-invariants.png){#fig:integral_invariants width=100%}
 
+In the dashboard's **Manuscript** view, open **Integral lattice divisibility** and select a census scope. A Hodge pair or Euler characteristic restricts the population, and an occupied cell selects the exact $(g_3,g_2)$ cohort. **Open source records** opens that cohort in the archive. Select a record by ID to inspect its dimensions, degree matrix, and ordered second Chern pairings. **Rerun in Python** rebuilds the content values and congruence checks for that record from its configuration. The shared figure link retains the scope, cell, and record for replay.
+
+Use **Compare the rank-one witnesses** to select their common Hodge group, then choose each archive ID in the comparison panel. Each record reruns on its own defining degrees. The calculation verifies the integer contractions and the link to each archive ID. The weak Lefschetz argument in [@thm:integral_content_witness] identifies those particular ambient generators with the full integral lattices.
+
 ## Full-lattice comparison of two rank-one threefolds
 
 ::: {.example #thm:integral_content_witness title="Equal Hodge numbers and different integral cup products"}
@@ -67,3 +84,5 @@ $$ {#eq:integral_ample_contents}
 
 for these configurations, with positive values for both evaluations. They give $({{INTEGRAL_WITNESS_FIRST_CUBIC}},{{INTEGRAL_WITNESS_FIRST_CHERN}})$ and $({{INTEGRAL_WITNESS_SECOND_CUBIC}},{{INTEGRAL_WITNESS_SECOND_CHERN}})$. A graded integral cohomology ring isomorphism would carry a primitive degree-two generator to a primitive generator up to sign, and likewise for the normalized top-degree generator. The absolute cubic evaluations would then agree. The differing cubic contents therefore rule out such a ring isomorphism and a homeomorphism between the smooth threefolds. [@lefschetz-analysis-situs; @cipro-release]
 :::
+
+Garbagnati and van Geemen identify both families among examples with Hodge pair $({1},{73})$ in their study of periods and monodromy. The calculation above uses their shared Hodge pair to select the archive records and tests the full cubic lattice directly. [@garbagnati-van-geemen-shimura]
