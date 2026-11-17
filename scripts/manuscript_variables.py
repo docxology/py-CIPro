@@ -8,11 +8,14 @@ from pathlib import Path
 import re
 import subprocess
 import tomllib
+from types import SimpleNamespace
 
+from check_intersections import configuration_euler
 from py_cipro import FUNCTIONS, MODIFICATIONS, PROPERTIES
 from py_cipro._dashboard_examples import EXAMPLES
 from py_cipro._native import NATIVE_FUNCTIONS, NATIVE_MODIFICATIONS, NATIVE_PROPERTIES
 from py_cipro._release import RELEASE_COMMIT
+from py_cipro._research_chern import polarized_invariants
 from py_cipro.catalog import get_catalog
 
 
@@ -141,6 +144,42 @@ def add_revision_variables(variables, records):
         "WITNESS_PAIRED_EXCESS": "witness_paired_excess",
     }.items():
         variables["BICUBIC_EXACT_" + token] = exact[key]
+
+
+def literature_comparison(variables):
+    """Recompute the published split examples using the manuscript conventions."""
+    presentations = {
+        "original": ((2, 1, 3), ((2, 0, 1), (1, 1, 0), (0, 1, 3))),
+        "split": ((1, 2, 1, 3), ((1, 1, 0, 0), (1, 1, 0, 1), (1, 0, 1, 0), (0, 0, 1, 3))),
+    }
+    split_evidence = {}
+    for name, (dimensions, degrees) in presentations.items():
+        record = SimpleNamespace(id=name, ambient_dimensions=dimensions, configuration=degrees)
+        _, volume, pairing, sections = polarized_invariants(record)
+        euler = configuration_euler(record)
+        if euler != -90:
+            raise ValueError(f"The published configuration {name} must have Euler characteristic -90")
+        columns = "r|" + "r" * len(degrees[0])
+        rows = r"\\".join("&".join(map(str, (dimension, *row)))
+                          for dimension, row in zip(dimensions, degrees, strict=True))
+        matrix = rf"\left[\begin{{array}}{{{columns}}}{rows}\end{{array}}\right]"
+        for key, value in (
+            ("MATRIX", matrix), ("VOLUME", volume), ("PAIRING", pairing), ("SECTIONS", sections),
+        ):
+            variables[f"LITERATURE_{name.upper()}_{key}"] = value
+        split_evidence[name] = {
+            "ambient_dimensions": dimensions, "configuration": degrees, "euler": euler,
+            "volume": volume, "c2_pairing": pairing, "sections": sections,
+        }
+    variables["LITERATURE_SPLIT_EULER"] = split_evidence["split"]["euler"]
+    lower_bound = 2590
+    variables["LITERATURE_CICY_TOPOLOGY_LOWER_BOUND"] = lower_bound
+    return {
+        "ineffective_split": {
+            "citation": "anderson-fibrations", "section": "2.1.2", "presentations": split_evidence,
+        },
+        "cicy_topology_lower_bound": {"citation": "he-candelas-count", "value": lower_bound},
+    }
 
 
 def add_figure_variables(variables, analysis):
@@ -288,6 +327,7 @@ def build_variables(root):
         variables[f"RELEASED_{area}"] = row["released"]
     add_figure_variables(variables, analysis["figure_analysis"])
     add_revision_variables(variables, analysis)
+    literature = literature_comparison(variables)
     formatted = {name: as_text(value) for name, value in variables.items()}
     evidence_paths = [
         "pyproject.toml",
@@ -320,6 +360,7 @@ def build_variables(root):
         "template_version": variables["TEMPLATE_VERSION"],
         "software": software,
         "analysis": paths,
+        "literature": literature,
         "figures_sha256": {
             path.name: sha256(path.read_bytes()).hexdigest()
             for path in sorted((root / "manuscript" / "figures").glob("*.png"))

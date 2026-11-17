@@ -9,12 +9,12 @@ A single smooth threefold can admit several complete-intersection descriptions. 
 Their Section 2.1.2 gives an explicit $\mathbb P^1$ split for Hodge pair $(6,51)$. In the two matrices, the left column lists ambient dimensions and the remaining columns give the degrees used in [@prop:adjunction].
 
 $$
-\left[\begin{array}{r|rrr}2&2&0&1\\1&1&1&0\\3&0&1&3\end{array}\right]
+{{LITERATURE_ORIGINAL_MATRIX}}
 \longrightarrow
-\left[\begin{array}{r|rrrr}1&1&1&0&0\\2&1&1&0&1\\1&1&0&1&0\\3&0&0&1&3\end{array}\right].
+{{LITERATURE_SPLIT_MATRIX}}.
 $$ {#eq:ineffective_split_presentations}
 
-Evaluating [@eq:polarized_pairings] on [@eq:ineffective_split_presentations] gives $(V,T)=(74,104)$ and $(122,128)$, with Euler characteristic $-90$ for both. The chosen ample class has 21 sections before the split and 31 afterwards by [@eq:polarized_sections]. Here the same deformation type acquires two different selected Hilbert polynomials. The new factor contributes its hyperplane class to the all-ones convention. [@anderson-fibrations]
+Evaluating [@eq:polarized_pairings] on [@eq:ineffective_split_presentations] gives degree {{LITERATURE_ORIGINAL_VOLUME}} and Chern pairing {{LITERATURE_ORIGINAL_PAIRING}} before the split and degree {{LITERATURE_SPLIT_VOLUME}} and pairing {{LITERATURE_SPLIT_PAIRING}} afterwards. Both have Euler characteristic {{LITERATURE_SPLIT_EULER}}. The chosen ample class has {{LITERATURE_ORIGINAL_SECTIONS}} sections before the split and {{LITERATURE_SPLIT_SECTIONS}} afterwards by [@eq:polarized_sections]. Here the same deformation type acquires two different selected Hilbert polynomials. The new factor contributes its hyperplane class to the all-ones convention. [@anderson-fibrations]
 
 ## Integral topology and the choice of polarization
 
@@ -31,7 +31,7 @@ $$ {#eq:integral_topological_data}
 For simply connected spin six-manifolds with torsion-free homology, Wall's classification identifies the oriented diffeomorphism type from $b_3$ and the pair $(\mu,\rho)$ on $L$. Thus, besides equality of $b_3$, it requires one integral isomorphism $\phi:L_X\to L_Y$ satisfying $\mu_X(u,v,w)=\mu_Y(\phi u,\phi v,\phi w)$ and $\rho_X(u)=\rho_Y(\phi u)$ for all $u,v,w$. Jupp extends the classification beyond the spin case for closed, oriented, simply connected six-manifolds with torsion-free homology. [@wall-six-manifolds; @jupp-six-manifolds]
 :::
 
-He and Candelas used integral intersection and Pontryagin data to distinguish configurations sharing Hodge numbers. Examining embeddings in fewer than six projective spaces gave a lower bound of 2,590 distinct manifolds. He, Yao, and Yau use four divisibility invariants, including $d_1$ for the cubic entries and $d_p$ for the second Chern evaluations of a divisor basis. Their explicit tensor algorithm assumes favorable geometry, and their prediction experiment compares learned estimates against the computed labels. The exact census in [@sec:integral_invariants] evaluates those two forms on the ambient image of each released configuration, including configurations with missing divisor directions. The finite-index bound in [@prop:integral_content_saturation] explains why the full-lattice analogues also require primitivity. [@he-candelas-count; @he-yao-yau-topology]
+He and Candelas used integral intersection and Pontryagin data to distinguish configurations sharing Hodge numbers. Examining embeddings in fewer than six projective spaces gave a lower bound of {{LITERATURE_CICY_TOPOLOGY_LOWER_BOUND}} distinct manifolds. He, Yao, and Yau use four divisibility invariants, including $d_1$ for the cubic entries and $d_p$ for the second Chern evaluations of a divisor basis. Their explicit tensor algorithm assumes favorable geometry, and their prediction experiment compares learned estimates against the computed labels. The exact census in [@sec:integral_invariants] evaluates those two forms on the ambient image of each released configuration, including configurations with missing divisor directions. The finite-index bound in [@prop:integral_content_saturation] explains why the full-lattice analogues also require primitivity. [@he-candelas-count; @he-yao-yau-topology]
 
 On a Calabi–Yau threefold, $p_1(TX)=c_1(TX)^2-2c_2(TX)=-2c_2(TX)$. The quantities in [@eq:polarized_pairings] then give $\mu_X(\ell,\ell,\ell)$ and $-\rho_X(\ell)/2$ at the chosen ambient class $\ell$. This identifies the part of the integral forms that the polarized audit measures. A different embedding can choose a different class on the same manifold, and ambient combinations may span only part of the integral lattice. Comparing full lattices calls for integral generators, including the classes beyond the ambient image where applicable. [@wall-six-manifolds; @he-candelas-count; @anderson-fibrations]
 
