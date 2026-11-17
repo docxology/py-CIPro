@@ -1,3 +1,5 @@
+import { mountMethodLab } from './method-lab.js'
+
 const $ = (id) => document.getElementById(id)
 const number = new Intl.NumberFormat('en-US')
 const pageSize = 15
@@ -10,15 +12,18 @@ const interval = (start) => `${start} to ${start + binWidth - 1}`
 const choice = (value) => ['yes', 'no'].includes(value) ? value : 'all'
 const integer = (text) => /^-?\d+$/.test(text || '') ? Number(text) : null
 const isPair = (value) => /^\d{1,3},\d{1,3}$/.test(value || '')
+const backendNames = { python: 'Python', wolfram: 'Wolfram', auto: 'Auto' }
+const backendName = (backend) => backendNames[backend] ?? 'CIPro'
 
 const state = {
   records: [], bins: [], domain: { h11: 10, h21: 10 }, source: null,
   view: [], query: '', favourable: 'all', product: 'all', pair: null, bin: null,
   recordId: null, record: null, page: 0, sort: 'id', direction: 1,
-  kernelEnabled: false, kernelChecked: false, computing: false,
+  kernelEnabled: false, kernelChecked: false, computing: false, backend: 'python', backends: [],
 }
 let plotPoints = []
 let requestSerial = 0
+let updateMethodBackend = () => {}
 
 function element(tag, content, className) {
   const node = document.createElement(tag)
@@ -366,14 +371,56 @@ function renderRecord(record) {
 
 function renderKernelState() {
   $('kernel-inputs').disabled = !state.kernelEnabled || !state.record || state.computing
+  updateMethodBackend()
   $('kernel-dot').classList.toggle('ready', state.kernelEnabled)
-  $('kernel-status').textContent = !state.kernelChecked ? 'Checking kernel' : state.kernelEnabled ? 'Kernel enabled' : 'Archive mode'
+  $('kernel-status').textContent = !state.kernelChecked ? 'Checking backends' : state.kernelEnabled ? `${backendName(state.backend)} selected` : 'Archive mode'
   if (state.computing) return
   const status = $('kernel-help')
   status.classList.remove('error')
-  status.textContent = !state.kernelChecked ? 'Checking live evaluation availability.' : state.kernelEnabled
-    ? (state.record ? 'Live results use the local Wolfram kernel.' : 'Choose a record to run CIPro.')
-    : 'Live evaluation is off. The catalogue and its visualizations work offline.'
+  if (!state.kernelChecked) status.textContent = 'Checking compute backends.'
+  else if (!state.kernelEnabled) status.textContent = 'Calculation is unavailable. The catalogue remains available.'
+  else if (!state.record) status.textContent = 'Choose a record to calculate its properties.'
+  else if (state.backend === 'wolfram') status.textContent = 'Wolfram uses an activated local kernel.'
+  else if (state.backend === 'auto') status.textContent = 'Auto tries Python first and uses a local Wolfram kernel for unsupported inputs.'
+  else status.textContent = 'Python calculates these properties locally.'
+}
+
+function renderPropertyComparison(output, record, response) {
+  const configuration = record.configuration
+  const ambient = record.ambient_dimensions
+  const reference = {
+    CIDim: [ambient.reduce((total, value) => total + value, 0) - configuration[0].length, 'Configuration dimensions'],
+    CY: [configuration.every((row, index) => row.reduce((total, value) => total + value, 0) === ambient[index] + 1), 'Configuration row sums'],
+    Euler: [record.euler, 'Archived Euler'],
+  }
+  const table = element('table', undefined, 'compute-table')
+  const head = element('thead')
+  const heading = element('tr')
+  for (const label of ['Property', 'Reference', backendName(response.backend)]) {
+    const cell = element('th', label)
+    cell.scope = 'col'
+    heading.append(cell)
+  }
+  head.append(heading)
+  const body = element('tbody')
+  for (const [key, value] of Object.entries(response.properties)) {
+    const row = element('tr')
+    const label = element('th', key)
+    label.scope = 'row'
+    const [expected, note] = reference[key] ?? [null, 'Reference unavailable']
+    const baseline = element('td', expected === null ? '—' : String(expected))
+    baseline.append(element('small', note))
+    const calculated = element('td', String(value), 'compute-comparison')
+    if (expected !== null) {
+      calculated.classList.toggle('differs', value !== expected)
+      calculated.append(element('small', value === expected ? 'Matches reference' : 'Differs from reference'))
+    }
+    row.append(label, baseline, calculated)
+    body.append(row)
+  }
+  table.append(head, body)
+  output.replaceChildren(element('p', `Source: ${response.source}`, 'compute-source'), table)
+  output.hidden = false
 }
 
 async function selectRecord(id, { updateURL = true, reload = false } = {}) {
@@ -508,21 +555,21 @@ $('compute-form').addEventListener('submit', async (event) => {
     return
   }
   const recordId = state.record.id
+  const backend = state.backend
   const serial = requestSerial
   state.computing = true
   renderKernelState()
-  status.textContent = `Running CIPro for configuration #${recordId}…`
+  status.textContent = `Calculating configuration #${recordId} with ${backendName(backend)}…`
   const output = $('compute-output')
   output.hidden = true
   try {
     const result = await loadJSON('/api/compute', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ record_id: recordId, properties }),
+      body: JSON.stringify({ record_id: recordId, properties, backend }),
     })
     if (serial !== requestSerial) return
-    output.textContent = JSON.stringify(result.properties, null, 2)
-    output.hidden = false
-    status.textContent = `Computed configuration #${recordId} · ${result.source}`
+    renderPropertyComparison(output, state.record, result)
+    status.textContent = `Calculated configuration #${recordId} with ${backendName(result.backend)}.`
   } catch (error) {
     if (serial !== requestSerial) return
     status.classList.add('error')
@@ -551,9 +598,36 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (state.source) drawCurrentScatter()
 })
 
-loadJSON('/api/kernel').then(({ enabled }) => { state.kernelEnabled = enabled === true }).catch(() => {}).finally(() => {
-  state.kernelChecked = true
+updateMethodBackend = mountMethodLab({
+  $, element, loadJSON, backendName, getBackend: () => state.kernelEnabled ? state.backend : null,
+  getRecord: () => state.record,
+})
+const backendControls = [...document.querySelectorAll('[data-backend-select]')]
+
+function renderBackendControls() {
+  for (const control of backendControls) {
+    control.disabled = !state.kernelEnabled
+    for (const option of control.options) option.disabled = !state.backends.includes(option.value)
+    control.value = state.backend
+  }
   renderKernelState()
+}
+
+for (const control of backendControls) {
+  control.addEventListener('change', () => {
+    if (!state.backends.includes(control.value)) return
+    state.backend = control.value
+    renderBackendControls()
+  })
+}
+
+loadJSON('/api/kernel').then(({ enabled, default_backend, backends }) => {
+  state.backends = Array.isArray(backends) ? backends.filter((name) => Object.hasOwn(backendNames, name)) : []
+  state.kernelEnabled = enabled === true && state.backends.length > 0
+  state.backend = state.backends.includes(default_backend) ? default_backend : state.backends[0] ?? 'python'
+}).catch(() => {}).finally(() => {
+  state.kernelChecked = true
+  renderBackendControls()
 })
 
 loadJSON('/api/catalog').then(({ records, dataset, release, sha256 }) => {

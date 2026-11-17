@@ -2,6 +2,8 @@
 
 Python callers can use the native implementations with SymPy and exact arithmetic, or call the released Wolfram Language package. The [method concordance](../concordance.md) covers all callable symbols and dispatch keys. The [Wolfram guide](../wolfram/api.md) describes the underlying package interfaces.
 
+Launch `py-cipro-dashboard` to use the same Python methods interactively. The dashboard starts with Python selected, shows the backend used for each result, and accepts structured JSON arguments in its method lab. The library constructor `CIPro()` defaults to Wolfram as described below. [Dashboard and method lab](../dashboard.md)
+
 ## Choose a backend
 
 ```python

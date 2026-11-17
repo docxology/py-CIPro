@@ -5,8 +5,9 @@ The manuscript source is in `manuscript/`. It uses
 commit `9bebe79195b8f6be4a3da02838fcd296b3012a56`. The template's
 [private project workflow](https://github.com/docxology/template/blob/v5.0.2/docs/maintenance/private-projects-repo.md)
 links a private project into a local renderer checkout. PDF rendering needs
-Python 3.14 or later, uv, Pandoc, and XeLaTeX. A Wolfram kernel is needed for
-CIPro calculations. The manuscript and atlas figure can be reproduced offline from the bundled release.
+Python 3.14 or later, uv, Pandoc, and XeLaTeX. The manuscript and atlas figure
+can be reproduced offline from the bundled release. Native calculations in
+the dashboard use Python. Wolfram calculations use an activated kernel.
 
 From the py-CIPro checkout, prepare a dedicated template checkout and a local
 sidecar for this project. The provenance check reads indexed project sources.

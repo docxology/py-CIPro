@@ -2,6 +2,8 @@
 
 Install the release's `CIPro.m`, `CIProAux`, `CIProData`, and `CIProExamples` in the Wolfram user applications directory. Load the package from a Wolfram notebook or kernel. The Python wrapper locates the same pinned release automatically when using its Wolfram backend. [CIPro v1.0 release](https://github.com/JamesGray-Physics/CIPro/releases/tag/v1.0) · [Python API](../python/api.md) · [Method concordance](../concordance.md)
 
+The dashboard offers **Wolfram** for eligible methods and starts a local kernel when a request needs it. Set `WOLFRAM_KERNEL` when automatic discovery fails. The dashboard accepts a restricted set of symbolic JSON tags. A Wolfram notebook or the Python library's Wolfram backend provides the broader native expression interface. [Dashboard and method lab](../dashboard.md)
+
 ```wolfram
 Needs["CIPro`"];
 quintic = <|"Conf" -> {{5}}, "DimPs" -> {4}|>;

@@ -33,7 +33,7 @@ Wolfram describes its free Community Edition as a pre-production development, de
 
 ## Private host and explorer HTTP API
 
-On an authorized host with this package installed and a suitably licensed kernel, launch the bundled loopback service. Omit `--kernel` to browse the archive with Python alone.
+On an authorized host with this package installed and a suitably licensed kernel, launch the bundled loopback service. Omit `--kernel` to select Python initially. Choose Wolfram in the browser or pass `"backend":"wolfram"` to compute with the local kernel.
 
 ```sh
 export WOLFRAM_KERNEL='/absolute/path/to/WolframKernel'
@@ -50,18 +50,18 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8765:127.0.0.1:8765 your-user@yo
 | --- | --- |
 | `GET /api/catalog` | Read the compact released `Cicy3` records and archive provenance. |
 | `GET /api/record?id=7890` | Read a selected one-based record and its configuration matrix and ambient dimensions. |
-| `GET /api/kernel` | Read whether the process was started with computation enabled. This flag makes no promise that kernel startup or activation will succeed. |
-| `POST /api/compute` | Ask the host's Wolfram kernel to evaluate selected properties for an archived `Cicy3` configuration. |
+| `GET /api/kernel` | Read the selected startup default and the three available dispatch modes. Wolfram activation is checked on first use. |
+| `POST /api/compute` | Evaluate selected properties for an archived `Cicy3` configuration with Python, Wolfram, or Auto. |
 
 ```sh
 curl --fail-with-body --silent --show-error 'http://127.0.0.1:8765/api/kernel'
 curl --fail-with-body --silent --show-error 'http://127.0.0.1:8765/api/record?id=7890'
 curl --fail-with-body --silent --show-error 'http://127.0.0.1:8765/api/compute' \
   -H 'Content-Type: application/json' \
-  --data '{"record_id":7890,"properties":["CIDim","CY","Euler"]}'
+  --data '{"record_id":7890,"properties":["CIDim","CY","Euler"],"backend":"wolfram"}'
 ```
 
-The compute endpoint takes an integer `record_id` from 1 through 7890 and one to three distinct keys from `CIDim`, `CY`, and `Euler`. The JSON object has exactly the two keys shown, within a 1,024-byte request body. The service constructs a new association using only the archived configuration and its inferred ambient dimensions. A successful response contains a `source` string and a `properties` object with the evaluated integers or Booleans. Only one kernel calculation can proceed at a time, and an occupied worker returns HTTP 409. Kernel startup and package load each have a 60-second limit, and an evaluation has a 30-second limit. Errors surface as HTTP failures with JSON details. A failed calculation leaves the archive browseable.
+The compute endpoint takes an integer `record_id` from 1 through 7890 and one to three distinct keys from `CIDim`, `CY`, and `Euler`. The JSON body accepts `record_id`, `properties`, and optional `backend`, within 1,024 bytes. The service constructs a new association using only the archived configuration and its inferred ambient dimensions. A successful response contains `source`, the actual `backend`, and a `properties` object with the evaluated integers or Booleans. Only one dashboard calculation can proceed at a time, and an occupied worker returns HTTP 409. Kernel startup and package load each have a 60-second limit, and an evaluation has a 30-second limit. Errors surface as HTTP failures with JSON details. A failed calculation leaves the archive browseable.
 
 The service listens on `127.0.0.1` and is designed for a trusted local or SSH-forwarded client. The host check permits `localhost` and `127.0.0.1` on the listener port. Compute requests supplying a browser `Origin` must use the same authority. The endpoint has no HTTP authentication for users on that host. Keep the listener on trusted loopback. A public or multi-user deployment would need its own authenticated service design and licensing. For arbitrary inputs, other CIPro calls, and WXF results, run the Python wrapper in an authorized shell on the kernel host.
 
