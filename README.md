@@ -74,7 +74,7 @@ For the upstream package, cite Lara B. Anderson, Andrei Constantin, James Gray, 
 
 For the Python software and its research outputs, use the versioned citation
 metadata and identify the release used for the calculation.
-[Citation metadata](CITATION.cff) · [GitHub releases](https://github.com/docxology/py-CIPro/releases)
+[Citation metadata](CITATION.cff) · [Zenodo archive](https://doi.org/10.5281/zenodo.24352380) · [GitHub releases](https://github.com/docxology/py-CIPro/releases)
 
 ## Verification
 

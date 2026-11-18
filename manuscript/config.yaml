@@ -26,3 +26,5 @@ render:
     slides: false
     docx: false
     epub: false
+publication:
+  doi: "10.5281/zenodo.24352380"
