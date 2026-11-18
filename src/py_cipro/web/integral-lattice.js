@@ -1,4 +1,5 @@
 import { mountCubicRefinement } from "./cubic-refinement.js";
+import { mountIndexDivisibility } from "./index-divisibility.js";
 
 const key = row => `${row.cubic_content},${row.chern_content}`;
 const superscripts = { 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
@@ -288,6 +289,7 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
   shareActions.append(share);
   census.details.append(shareActions, shareStatus, shareFallback);
 
+  mountIndexDivisibility(figure, openRecords, ui);
   refinementView = mountCubicRefinement(figure, ui.refinement, data, openRecords, source => {
     setPreset("hodge", source.hodge.join(","), { id: source.id, cubic_content: source.d1, chern_content: source.dp });
   }, { ...ui, onChange: () => { shareStatus.textContent = ""; shareFallback.hidden = true; } });

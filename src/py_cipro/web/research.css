@@ -315,6 +315,50 @@
 .refinement-witness-evidence pre { max-height: 19rem; }
 .refinement-qualification { font-size: .75rem; color: var(--dim); line-height: 1.5; padding-top: .8rem; border-top: 1px solid var(--line); margin: 1rem 0 0; }
 
+.index-divisibility { grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 1.2rem; min-width: 0; scroll-margin-top: 1rem; }
+.index-divisibility .refinement-heading a { text-decoration: none; }
+.index-divisibility-shared {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem 1rem;
+  margin: 1rem 0 .8rem;
+  padding: .7rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--research-graph-bg);
+}
+.index-divisibility-shared dt { color: var(--dim); font-size: .74rem; margin-bottom: .22rem; }
+.index-divisibility-shared dd { margin: 0; font-size: .96rem; font-weight: 680; font-variant-numeric: tabular-nums; }
+.index-divisibility-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.index-divisibility-record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: .75rem .6rem;
+  padding: .85rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-width: 0;
+  background: var(--white);
+}
+.index-divisibility-record h5 { margin: 0; align-self: center; font-size: .97rem; }
+.index-divisibility-gcd { margin: 0; padding: .35rem .58rem; border-radius: 6px; text-align: center; background: var(--research-graph-bg); }
+.index-divisibility-gcd dt { color: var(--dim); font-size: .7rem; }
+.index-divisibility-gcd dd { margin: .08rem 0 0; font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.index-divisibility-matrix, .index-divisibility-hyperplanes, .index-divisibility-record .research-panel-controls { grid-column: 1 / -1; }
+.index-divisibility-matrix { justify-self: start; border-collapse: separate; border-spacing: .25rem; font-variant-numeric: tabular-nums; }
+.index-divisibility-matrix caption, .index-divisibility-hyperplanes h6 { color: var(--dim); text-align: left; font-size: .75rem; font-weight: 650; margin: 0 0 .25rem; }
+.index-divisibility-matrix th { color: var(--dim); font-weight: 550; padding-right: .35rem; }
+.index-divisibility-matrix td { min-width: 1.65rem; border-radius: 4px; padding: .2rem .3rem; text-align: center; font-size: .82rem; }
+.index-divisibility-matrix .matrix-zero { color: var(--dim); background: var(--research-graph-bg); }
+.index-divisibility-matrix .matrix-nonzero { background: color-mix(in srgb, var(--research-positive) 17%, var(--white)); }
+.index-divisibility-hyperplanes dl { display: flex; gap: .45rem; flex-wrap: wrap; margin: 0; }
+.index-divisibility-hyperplanes dl > div { min-width: 3.65rem; border: 1px solid var(--line); border-radius: 5px; padding: .3rem .45rem; text-align: center; }
+.index-divisibility-hyperplanes dt { color: var(--dim); font-size: .7rem; }
+.index-divisibility-hyperplanes dd { margin: .12rem 0 0; font-size: 1.05rem; font-weight: 670; font-variant-numeric: tabular-nums; }
+.index-divisibility-hyperplanes .index-divisibility-odd { border-color: var(--research-contribution); background: color-mix(in srgb, var(--research-contribution) 16%, var(--white)); }
+.index-divisibility-interpretation { margin: .8rem 0 0; color: var(--dim); font-size: .79rem; line-height: 1.5; }
+
 @media (prefers-color-scheme: dark) {
   .research-workspace {
     --research-negative: #c9afe8;
@@ -346,7 +390,10 @@
   .integral-witnesses { gap: .5rem; padding: .65rem; }
   .integral-witness { padding: .7rem; }
   .integral-witness-geometry { font-size: 1.35rem; }
-  .integral-refinement { padding: .85rem; }
+  .integral-refinement, .index-divisibility { padding: .85rem; }
+  .index-divisibility-comparison { grid-template-columns: minmax(0, 1fr); }
+  .index-divisibility-shared { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .index-divisibility-shared > div:last-child { grid-column: 1 / -1; }
   .refinement-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
   .refinement-metrics > div { padding: .65rem; }
   .refinement-definitions dl { grid-template-columns: minmax(0, 1fr); }

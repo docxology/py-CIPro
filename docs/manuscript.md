@@ -141,8 +141,8 @@ directory. Generate `SHA256SUMS` in that directory with relative paths.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
 
 The Figure 6 controls use the cubic refinement receipt. The graphical abstract
-also uses the integral-lattice and fixed-divisor receipts. The dashboard links
-to `index-divisibility.json` beside the cubic-refinement controls.
+also uses the integral-lattice and fixed-divisor receipts. The dashboard compares
+the two cover witnesses in Figure 6 and links to `index-divisibility.json`.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT
 --title TITLE --pages PAGES` from the project checkout. Use the full

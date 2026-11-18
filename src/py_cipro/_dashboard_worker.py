@@ -6,7 +6,7 @@ import sys
 import warnings
 
 from ._client import CIPro, EvaluationError
-from ._dashboard_research import STUDY_NAMES, recompute_cohomology, recompute_study
+from ._dashboard_research import INDEX_STUDY, STUDY_NAMES, recompute_cohomology, recompute_study
 from ._dashboard_values import decode, encode
 from ._native_errors import NativeUnsupportedError
 
@@ -49,7 +49,7 @@ def main():
             research = request.get("research") if isinstance(request, dict) else None
             if research == "cohomology":
                 result = recompute_cohomology(client, request)
-            elif research in STUDY_NAMES:
+            elif research == INDEX_STUDY or research in STUDY_NAMES:
                 result = recompute_study(request)
             else:
                 result = run_operation(client, request, "python")

@@ -991,7 +991,7 @@ function bicubicExact(root, data, openRecords) {
 
 function integralInvariants(root, data, openRecords, studies) {
   renderIntegralLattice(root, data, openRecords, {
-    section, panel, field, node, svgNode, runAction, recordAction, count,
+    section, panel, field, node, svgNode, runAction, recordAction, request, count,
     refinement: studies["cubic-refinement"],
   });
 }
@@ -1020,7 +1020,8 @@ function intro(root) {
   manuscript.target = "_blank";
   manuscript.rel = "noopener";
   const figuresLink = link("Explore the figures", "#research-figures", "button secondary-hero");
-  actions.append(manuscript, figuresLink);
+  const indexLink = link("Compare index divisibility", "#research-index-divisibility", "button secondary-hero");
+  actions.append(manuscript, figuresLink, indexLink);
   text.append(header, title, author,
     node("p", "Inspect all eight numbered figures, trace selections to the archive, and rerun exact calculations with Python."),
     actions);
@@ -1030,7 +1031,7 @@ function intro(root) {
   abstractLink.rel = "noopener";
   const image = node("img");
   image.src = "/research/graphical-abstract.png";
-  image.alt = "Graphical abstract showing exact Chern pairings, two catalogue weightings, bicubic cohomology jumps, and integral lattice divisibility.";
+  image.alt = "CICY3 records 7626 and 7635 share Hodge numbers and cubic and Chern gcds. Their ambient line-bundle index gcds are 2 and 1, respectively.";
   image.loading = "lazy";
   image.decoding = "async";
   abstractLink.append(image);
@@ -1090,7 +1091,7 @@ export async function initializeResearch({ openRecords }) {
     root.append(rendered);
     status.remove();
     await provenance;
-    if (figures.some(([id]) => location.hash === `#research-${id}`)) {
+    if (location.hash === "#research-index-divisibility" || figures.some(([id]) => location.hash === `#research-${id}`)) {
       document.getElementById(location.hash.slice(1)).scrollIntoView({ behavior: "instant", block: "start" });
     }
   } catch (error) {

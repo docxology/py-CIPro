@@ -14,17 +14,18 @@ from ._native_errors import NativeUnsupportedError
 from ._research_atlas import atlas_comparison
 from ._research_bicubic import COEFFICIENTS, bicubic_study_row
 from ._research_chern import polarized_invariants
-from ._research_cubic import SIGNATURE_KEYS, _valid_signature, cubic_signature
+from ._research_cubic import SIGNATURE_KEYS, _ambient_index_values, _valid_signature, cubic_signature
 from ._research_integral import integral_invariants
 from .catalog import _cicy3_source_rows, get_catalog
 
 
 INTEGRAL_STUDY = "integral-invariants"
 CUBIC_STUDY = "cubic-refinement"
+INDEX_STUDY = "index-divisibility"
 COVER_PREVIEW_NAME = "graphical-abstract.png"
 FIGURE_STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", INTEGRAL_STUDY)
 STUDY_NAMES = (*FIGURE_STUDIES, CUBIC_STUDY)
-STUDY_DATA = (*(f"{name}.json" for name in STUDY_NAMES), "index-divisibility.json")
+STUDY_DATA = tuple(f"{name}.json" for name in (*STUDY_NAMES, INDEX_STUDY))
 PDF_NAMES = (
     "manuscript.pdf",
     "graphical-abstract.pdf",
@@ -45,6 +46,7 @@ class ResearchBundle:
     analysis: dict
     provenance: dict
     studies: dict
+    index_divisibility: dict
 
 
 @lru_cache(maxsize=1)
@@ -73,8 +75,11 @@ def research_bundle():
         raise ValueError("The exact bicubic study uses a different smooth member.")
     catalog = get_catalog()
     _verify_integral_study(studies[INTEGRAL_STUDY], catalog)
-    _verify_cubic_study(studies[CUBIC_STUDY], studies[INTEGRAL_STUDY], digests[f"{INTEGRAL_STUDY}.json"], catalog)
-    return ResearchBundle(bodies, analysis, provenance, studies)
+    cubic, integral = studies[CUBIC_STUDY], studies[INTEGRAL_STUDY]
+    _verify_cubic_study(cubic, integral, digests[f"{INTEGRAL_STUDY}.json"], catalog)
+    index_divisibility = json.loads(bodies[f"{INDEX_STUDY}.json"])
+    _verify_index_divisibility(index_divisibility, cubic, integral, digests[f"{CUBIC_STUDY}.json"], catalog)
+    return ResearchBundle(bodies, analysis, provenance, studies, index_divisibility)
 
 
 def _integral_pair(row):
@@ -206,6 +211,67 @@ def _verify_cubic_study(study, integral, integral_digest, catalog):
                 raise ValueError("The cubic witness does not match its archive record.")
 
 
+def _verify_index_divisibility(study, cubic, integral, cubic_digest, catalog):
+    """Bind the index receipt and comparison witnesses to the exact archive cohorts."""
+    if (
+        study["schema_version"] != 1 or study["dataset"] != catalog.dataset
+        or study["cubic_refinement_sha256"] != cubic_digest
+        or tuple(study["signature_order"]) != (*SIGNATURE_KEYS, "index_divisor")
+    ):
+        raise ValueError("The index-divisibility audit uses a different cubic refinement receipt.")
+    divisors = Counter()
+    joint = Counter()
+    hodge_signatures = defaultdict(set)
+    hodge_extended = defaultdict(set)
+    by_id = {}
+    for row, signature_row, lattice in zip(study["rows"], cubic["rows"], integral["rows"], strict=True):
+        record_id, divisor = row["id"], row["index_divisor"]
+        if (
+            row.keys() != {"id", "index_divisor"} or record_id != signature_row["id"]
+            or type(divisor) is not int or divisor < 1
+            or any(index % divisor for index in lattice["hyperplane_indices"])
+        ):
+            raise ValueError("An index divisor does not match its ambient lattice row.")
+        hodge = tuple(lattice["hodge"])
+        signature = _cubic_values(signature_row)
+        extended = (*signature, divisor)
+        divisors[divisor] += 1
+        joint[extended] += 1
+        hodge_signatures[hodge].add(signature)
+        hodge_extended[hodge].add(extended)
+        by_id[record_id] = (divisor, signature, lattice)
+    expected_distribution = [{"value": value, "count": count} for value, count in sorted(divisors.items())]
+    expected_joint = [{"signature": list(signature), "count": count} for signature, count in sorted(joint.items())]
+    summary = study["summary"]
+    if (
+        study["distribution"] != expected_distribution or study["joint"] != expected_joint
+        or summary["records"] != len(by_id) or summary["nonunit_records"] != len(by_id) - divisors[1]
+        or summary["signatures_before"] != cubic["summary"]["joint_quadruples"]
+        or summary["signatures_after"] != len(joint)
+        or summary["hodge_groups_refined"] != sum(
+            len(hodge_extended[hodge]) > len(signatures) for hodge, signatures in hodge_signatures.items()
+        )
+    ):
+        raise ValueError("The index-divisibility counts do not match the archived signatures.")
+    first, second = study["witness"]
+    if (
+        (first["id"], second["id"]) != (7626, 7635)
+        or any(first[key] != second[key] for key in ("hodge", "euler", "signature", "favourable"))
+        or first["index_divisor"] == second["index_divisor"]
+    ):
+        raise ValueError("The index witnesses do not exhibit the stated comparison.")
+    for witness in (first, second):
+        record = catalog.record(witness["id"])
+        divisor, signature, lattice = by_id[record.id]
+        if (
+            witness["index_divisor"] != divisor or tuple(witness["signature"]) != signature
+            or any(witness[key] != lattice[key] for key in ("hodge", "euler", "favourable", "hyperplane_indices"))
+            or record.ambient_dimensions != tuple(witness["ambient_dimensions"])
+            or record.configuration != tuple(tuple(degrees) for degrees in witness["configuration"])
+        ):
+            raise ValueError("An index witness does not match its source record.")
+
+
 def verify_catalog_binding(bundle, catalog):
     metadata = bundle.analysis["catalog"]
     if (
@@ -216,7 +282,7 @@ def verify_catalog_binding(bundle, catalog):
         or bundle.provenance["archive_sha256"] != catalog.sha256
         or bundle.provenance["dataset_sha256"] != catalog.member_sha256
         or any(study["archive_sha256"] != catalog.sha256 or study["dataset_sha256"] != catalog.member_sha256
-               for study in bundle.studies.values())
+               for study in (*bundle.studies.values(), bundle.index_divisibility))
     ):
         raise ValueError("The bundled research analysis does not match the dashboard's Cicy3 archive.")
 
@@ -342,17 +408,17 @@ def _atlas_comparison_selection(fields, records):
     raise ValueError("Select an Euler threshold, an ambient factor count, or the full weighting study.")
 
 
-def _integral_record(study, record_id):
+def _study_record(study, record_id):
     reference = next((row for row in study["rows"] if row["id"] == record_id), None)
     if reference is None:
-        raise ValueError("Select an archived non-product record from the integral-lattice study.")
+        raise ValueError("Select an archived non-product CICY3 record from the study.")
     return reference
 
 
 def _integral_selection(fields, study):
     if fields.keys() == {"record_id"}:
         record_id = _number(fields["record_id"])
-        reference = _integral_record(study, record_id)
+        reference = _study_record(study, record_id)
         cubic, chern = _integral_pair(reference)
         return [record_id], f"Record {record_id} · cubic content {cubic} · Chern content {chern}"
 
@@ -379,7 +445,7 @@ def _integral_selection(fields, study):
 def _cubic_selection(fields, study, catalog):
     if fields.keys() == {"record_id"}:
         record_id = _number(fields["record_id"])
-        reference = _integral_record(study, record_id)
+        reference = _study_record(study, record_id)
         return [record_id], f"Record {record_id} · cubic signature {_cubic_values(reference)}"
 
     required = set(SIGNATURE_KEYS)
@@ -402,7 +468,7 @@ def _cubic_selection(fields, study, catalog):
     return ids, label
 
 
-def record_selection(query, analysis, catalog, studies=None):
+def record_selection(query, analysis, catalog, studies=None, index_divisibility=None):
     fields = _query_fields(query)
     figure = fields.pop("figure", None)
     if figure == "atlas":
@@ -426,6 +492,10 @@ def record_selection(query, analysis, catalog, studies=None):
         ids, label = _integral_selection(fields, studies[figure])
     elif figure == CUBIC_STUDY and studies is not None:
         ids, label = _cubic_selection(fields, studies[figure], catalog)
+    elif figure == INDEX_STUDY and fields.keys() == {"record_id"} and index_divisibility is not None:
+        record_id = _number(fields["record_id"])
+        reference = _study_record(index_divisibility, record_id)
+        ids, label = [record_id], f'Record {record_id} · ambient index gcd {reference["index_divisor"]}'
     else:
         raise ValueError("Choose a valid manuscript figure selection.")
     return {"ids": ids, "matched": len(ids), "label": label}
@@ -487,6 +557,12 @@ def prepare_research(payload, bundle, catalog):
     figure = payload["figure"]
     if figure == "cohomology":
         return prepare_cohomology(payload, bundle.analysis, catalog)
+    if figure == INDEX_STUDY:
+        (record_id,) = _study_values(payload, ("record_id",))
+        row = _study_record(bundle.index_divisibility, record_id)
+        lattice = _study_record(bundle.studies[INTEGRAL_STUDY], record_id)
+        reference = {**row, "hyperplane_indices": lattice["hyperplane_indices"]}
+        return {"research": figure, "record_id": record_id, "manuscript": reference}
     if figure not in STUDY_NAMES:
         raise ValueError("Choose an available manuscript study.")
     study = bundle.studies[figure]
@@ -509,7 +585,7 @@ def prepare_research(payload, bundle, catalog):
         return {"research": figure, "selector": selector, "manuscript": _atlas_comparison_result(study, selector)}
     if figure in (INTEGRAL_STUDY, CUBIC_STUDY):
         (record_id,) = _study_values(payload, ("record_id",))
-        return {"research": figure, "record_id": record_id, "manuscript": _integral_record(study, record_id)}
+        return {"research": figure, "record_id": record_id, "manuscript": _study_record(study, record_id)}
     a, b = _study_values(payload, ("a", "b"))
     reference = next((row for row in study["rows"] if (row["a"], row["b"]) == (a, b)), None)
     if reference is None:
@@ -540,6 +616,11 @@ def recompute_study(payload):
     elif figure == CUBIC_STUDY:
         result = cubic_signature(payload["record_id"])
         source = "Exact cubic signature from the archived configuration and ambient integral divisor lattice."
+    elif figure == INDEX_STUDY:
+        record_id = payload["record_id"]
+        divisor, indices = _ambient_index_values(record_id)
+        result = {"id": record_id, "index_divisor": divisor, "hyperplane_indices": indices}
+        source = "Exact ambient Riemann–Roch indices and fixed divisor from the archived configuration."
     else:
         raise ValueError("Unknown manuscript study.")
     return {

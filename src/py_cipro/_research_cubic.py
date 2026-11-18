@@ -75,12 +75,17 @@ def cubic_signature(record_id: int) -> dict[str, int]:
     return result
 
 
+def _ambient_index_values(record_id):
+    cycle, cubic, _, indices = _checked_intersections(*_archived_record_and_pairings(record_id))
+    divisor, _ = _index_divisor_details(cubic, indices, gcd(*cycle.values()))
+    return divisor, indices
+
+
 def ambient_index_divisor(record_id: int) -> int:
     """Recompute the gcd of all ambient line-bundle indices on one CICY3 lattice.
 
     Supply the one-based archive ID of a non-product configuration. Invalid
     IDs and product records raise ValueError.
     """
-    cycle, cubic, _, indices = _checked_intersections(*_archived_record_and_pairings(record_id))
-    divisor, _ = _index_divisor_details(cubic, indices, gcd(*cycle.values()))
+    divisor, _ = _ambient_index_values(record_id)
     return divisor

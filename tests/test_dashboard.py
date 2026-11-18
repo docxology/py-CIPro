@@ -363,6 +363,76 @@ class DashboardTests(unittest.TestCase):
             with self.subTest(record_id=invalid), self.assertRaises(ValueError):
                 ambient_index_divisor(invalid)
 
+    def test_index_divisibility_drills_into_both_records_and_reruns_with_native_python(self):
+        route = "/api/research/rerun"
+        selection = "/api/research/records?figure=index-divisibility"
+        status, _, body = self.request("GET", "/research/index-divisibility.json")
+        self.assertEqual(status, 200, body)
+        witnesses = json.loads(body)["witness"]
+        expected = [(7626, 2, [2, 4, 4]), (7635, 1, [2, 4, 5])]
+        self.assertEqual(
+            [(row["id"], row["index_divisor"], row["hyperplane_indices"]) for row in witnesses],
+            expected,
+        )
+        with patch.object(self.server.kernel, "call_result") as wolfram:
+            for witness in witnesses:
+                record_id = witness["id"]
+                with self.subTest(record_id=record_id):
+                    status, _, body = self.request("GET", f"{selection}&record_id={record_id}")
+                    self.assertEqual(status, 200, body)
+                    selected = json.loads(body)
+                    self.assertEqual((selected["ids"], selected["matched"]), ([record_id], 1))
+                    status, _, body = self.request("GET", f'/api/record?id={selected["ids"][0]}')
+                    self.assertEqual(status, 200, body)
+                    archived = json.loads(body)
+                    self.assertEqual(archived["configuration"], witness["configuration"])
+                    self.assertEqual(archived["ambient_dimensions"], witness["ambient_dimensions"])
+                    payload = {"figure": "index-divisibility", "record_id": record_id}
+                    status, _, body = self.post(payload, route, Origin=self.origin)
+                    self.assertEqual(status, 200, body)
+                    replay = json.loads(body)
+                    self.assertEqual((replay["backend"], replay["record_id"]), ("python", record_id))
+                    reference = {key: witness[key] for key in ("id", "index_divisor", "hyperplane_indices")}
+                    self.assertEqual(replay["result"], reference)
+                    self.assertEqual(replay["manuscript"], reference)
+                    self.assertTrue(replay["matches_manuscript"])
+                    rank = len(archived["ambient_dimensions"])
+                    with CIPro(backend="python") as python_client:
+                        independent = [
+                            python_client.property({
+                                "Conf": archived["configuration"], "DimPs": archived["ambient_dimensions"],
+                                "LBS": [[int(i == j)] for j in range(rank)],
+                            }, "IndLBS", Format="Short")
+                            for i in range(rank)
+                        ]
+                    self.assertEqual(replay["result"]["hyperplane_indices"], independent)
+            wolfram.assert_not_called()
+        product = next(record.id for record in self.server.catalog.records if record.product)
+        for record_id in (True, 0, 7891, product, "7626", 7626.0):
+            with self.subTest(record_id=record_id):
+                self.assertEqual(self.post({"figure": "index-divisibility", "record_id": record_id}, route)[0], 400)
+        for suffix in ("", "&record_id=0", f"&record_id={product}", "&record_id=7626&record_id=7635"):
+            self.assertEqual(self.request("GET", selection + suffix)[0], 400)
+        payload = {"figure": "index-divisibility", "record_id": 7626}
+        self.assertEqual(self.post({**payload, "backend": "wolfram"}, route)[0], 400)
+        self.assertEqual(self.post(payload, route, Origin="https://example.invalid")[0], 403)
+
+    def test_index_divisibility_worker_compares_only_after_recomputation(self):
+        cases = (
+            ({"id": 7635, "index_divisor": 2, "hyperplane_indices": [2, 4, 4]},
+             {"id": 7635, "index_divisor": 1, "hyperplane_indices": [2, 4, 5]}),
+            ({"id": 7878, "index_divisor": 6, "hyperplane_indices": [6]},
+             {"id": 7878, "index_divisor": 3, "hyperplane_indices": [6]}),
+        )
+        for stale, expected in cases:
+            with self.subTest(record_id=expected["id"]):
+                replay = recompute_study({
+                    "research": "index-divisibility", "record_id": expected["id"], "manuscript": stale,
+                })
+                self.assertEqual(replay["result"], expected)
+                self.assertEqual(replay["manuscript"], stale)
+                self.assertFalse(replay["matches_manuscript"])
+
     def test_research_mark_selection_returns_exact_archive_ids(self):
         records = self.server.catalog.records
         examples = {

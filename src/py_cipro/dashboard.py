@@ -48,6 +48,7 @@ STATIC = {
     "/research.css": ("research.css", "text/css"),
     "/integral-lattice.js": ("integral-lattice.js", "text/javascript"),
     "/cubic-refinement.js": ("cubic-refinement.js", "text/javascript"),
+    "/index-divisibility.js": ("index-divisibility.js", "text/javascript"),
 }
 RESEARCH_PDFS = {f"/research/{name}": name for name in PDF_NAMES}
 RESEARCH_DATA = {f"/research/{name}": name for name in STUDY_DATA}
@@ -107,7 +108,7 @@ class DashboardServer(ThreadingHTTPServer):
     def research_records(self, query):
         bundle = self.research()
         try:
-            return record_selection(query, bundle.analysis, self.catalog, bundle.studies)
+            return record_selection(query, bundle.analysis, self.catalog, bundle.studies, bundle.index_divisibility)
         except ValueError as exc:
             raise RequestError(HTTPStatus.BAD_REQUEST, str(exc)) from exc
 
