@@ -1,7 +1,7 @@
 {
   "title": "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds",
   "upload_type": "software",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "creators": [
     {
       "name": "Friedman, Daniel",
@@ -18,7 +18,7 @@
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/docxology/py-CIPro/releases/tag/v0.9.1",
+      "identifier": "https://github.com/docxology/py-CIPro/releases/tag/v0.9.2",
       "relation": "isSupplementTo",
       "resource_type": "software"
     },
