@@ -3,20 +3,21 @@
   "manuscript_title": "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds",
   "manuscript_author": "Daniel Friedman",
   "manuscript_pages": 26,
-  "source_commit": "59b03cb387cb575558c6f861d625934069b389d4",
+  "source_commit": "42d2637899d8b8667684ff15f81ffad990a5dd92",
   "template_version": "5.0.2",
   "template_commit": "9bebe79195b8f6be4a3da02838fcd296b3012a56",
   "archive_sha256": "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53",
   "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
   "assets_sha256": {
-    "manuscript.pdf": "621f7eb295167a9739f14096ef077b1a11ff33d0a6bdd6fd9ab4c62ad2f08cea",
-    "graphical-abstract.pdf": "b09ae0b6deba07185c15414b32b7481791d6799541c48d4fa002a67edba552dd",
-    "graphical-abstract.png": "36c82423bc51fe58bc782bfb75c42d8fb1b1e2460ef5a0276fc42fecb3beb4a9",
+    "manuscript.pdf": "155e405eb31ce45d00bddd2f37f2e77b82ba4d47bb33e31a8bcec35b8ef91fa6",
+    "graphical-abstract.pdf": "8d322eaa88c0b05a64ac33afbe194a2439629981b54563fef8666fa12d6f98d5",
+    "graphical-abstract.png": "930d2e8e03942ac38116eb0fc929cceb0808854ecf4da3f6cdc21b10e3c83169",
     "manuscript-analysis.json": "1b31f593cfba088a85ff9179967d0b16bf61b05cbc8863e9f3909508811e8d1f",
     "chern-audit.json": "53873f45360ce7823276029493c539fed534bf1eee40f10acde25f902184944e",
     "atlas-comparison.json": "12c18efda29563953a96bcaa6c33762c8f7a54176f113c6a2275ed8b4745fc13",
     "bicubic-exact.json": "cb373be3f35cb24e38887a86d8247824cd082184de4fae58ce5907d7676855af",
     "integral-invariants.json": "5d22566bf689ea9e8a94bfaa526325b179b50c00c52809f00a55ede9818a03de",
+    "cubic-refinement.json": "baf220d7081774f3b6397145d79433300b176bc636269be9bc181fc42b774f75",
     "chern-audit.pdf": "15ba415f8fc4302a5eead3d5e109e3c1e5aa4d26babac5a4df7f3ab74e9cfb55",
     "cicy3-atlas.pdf": "9b48690dd15ed3aa0c28b12afd1e6cb69272cc7001b02ca6ab68c8a1f24d195e",
     "cicy3-multiplicity.pdf": "0ab78255f854d7a9473c02a52e3ae40c07286f12b6c18130708a5a08965460c8",
@@ -27,12 +28,13 @@
     "bicubic-exact.pdf": "8738085b9c0d2ef7b1776e74b9a66948daf16a3768d7f4f8a30fe1d4ca506dea"
   },
   "cover": {
-    "alt_text": "Graphical abstract showing the second Chern audit, Euler medians under two catalogue weights, cohomology jumps on a specified smooth bicubic, and the Hodge groups distinguished by ambient lattice divisibility.",
+    "alt_text": "Four panels show the second Chern pairing audit, Euler medians under two catalogue weights, cohomology jumps on one smooth bicubic, and the increase in ambient signatures and split Hodge groups after adding repeated and diagonal cubic divisibility.",
     "studies_sha256": {
       "chern-audit": "53873f45360ce7823276029493c539fed534bf1eee40f10acde25f902184944e",
       "atlas-comparison": "12c18efda29563953a96bcaa6c33762c8f7a54176f113c6a2275ed8b4745fc13",
       "bicubic-exact": "cb373be3f35cb24e38887a86d8247824cd082184de4fae58ce5907d7676855af",
-      "integral-invariants": "5d22566bf689ea9e8a94bfaa526325b179b50c00c52809f00a55ede9818a03de"
+      "integral-invariants": "5d22566bf689ea9e8a94bfaa526325b179b50c00c52809f00a55ede9818a03de",
+      "cubic-refinement": "baf220d7081774f3b6397145d79433300b176bc636269be9bc181fc42b774f75"
     }
   },
   "figures": {
