@@ -17,7 +17,7 @@ COVER_NAMES = ("graphical-abstract.pdf", "graphical-abstract.png")
 ASSETS = {
     "manuscript.pdf": "pdf/py-CIPro-manuscript.pdf",
     **{name: f"cover/{name}" for name in COVER_NAMES},
-    **{f"{name}.json": f"data/{name}.json" for name in ("manuscript-analysis", *STUDY_IDS)},
+    **{f"{name}.json": f"data/{name}.json" for name in ("manuscript-analysis", "index-divisibility", *STUDY_IDS)},
     **{f"{figure}.pdf": f"figures/{figure}.pdf" for figure in FIGURE_IDS},
 }
 
@@ -53,8 +53,10 @@ def package_research(export, destination, template_commit, manuscript_title, man
     if source["manuscript"]["title"] != manuscript_title or not source["manuscript"]["author"].strip():
         raise ValueError("The PDF title or author record disagrees with the manuscript metadata")
     cover = source["cover"]
-    if (not cover["alt_text"].strip()
-            or cover["inputs_sha256"] != {name: digests[f"{name}.json"] for name in STUDY_IDS}
+    cover_inputs = cover["inputs_sha256"]
+    if (not cover["alt_text"].strip() or not cover_inputs
+            or any(digests.get(f"{name}.json") != digest or digest is None
+                   for name, digest in cover_inputs.items())
             or any(cover["outputs_sha256"][name] != digests[name]
                    or output_digests.get(f"output/cover/{name}") != digests[name] for name in COVER_NAMES)):
         raise ValueError("The graphical abstract disagrees with the study or render receipts")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the manuscript's compact graphical abstract from its study data."""
+"""Render the catalogue witness and audit counts on the manuscript cover."""
 
 import argparse
 from collections import Counter, defaultdict
@@ -11,265 +11,189 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyBboxPatch
-from matplotlib.ticker import FuncFormatter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants", "cubic-refinement")
+COVER_STUDY_IDS = ("integral-invariants", "cubic-refinement", "index-divisibility")
 FIGSIZE = (7.0, 4.7)
-INK = "#172a3a"
-MUTED = "#486173"
-PALE = "#e0e8ed"
-TEAL = "#087267"
-PURPLE = "#755299"
-ORANGE = "#96471c"
+PAPER = "#f7f5ef"
+INK = "#16282e"
+MUTED = "#4c6061"
+RULE = "#d4dad3"
+TEAL = "#155a53"
+TEAL_PALE = "#e5eee7"
+RUST = "#863f25"
+RUST_PALE = "#f4e7de"
 
 
 def load_studies(directory):
-    raw = {name: (directory / f"{name}.json").read_bytes() for name in STUDIES}
+    raw = {name: (directory / f"{name}.json").read_bytes() for name in COVER_STUDY_IDS}
     studies = {name: json.loads(data) for name, data in raw.items()}
-    archive_ids = {
-        (record["archive_sha256"], record["dataset_sha256"]) for record in studies.values()
-    }
-    if len(archive_ids) != 1:
-        raise ValueError("The cover studies must use the same archived CICY3 inputs.")
     digests = {name: sha256(data).hexdigest() for name, data in raw.items()}
-    if studies["cubic-refinement"]["integral_receipt_sha256"] != digests["integral-invariants"]:
-        raise ValueError("The cubic refinement must bind this integral-invariants receipt.")
+    source_ids = {(study["archive_sha256"], study["dataset_sha256"]) for study in studies.values()}
+    if (
+        len(source_ids) != 1
+        or studies["cubic-refinement"]["integral_receipt_sha256"] != digests["integral-invariants"]
+        or studies["index-divisibility"]["cubic_refinement_sha256"] != digests["cubic-refinement"]
+    ):
+        raise ValueError("The graphical abstract requires three linked receipts from one CICY3 archive.")
     return studies, digests
 
 
-def minus(number):
-    return str(number).replace("-", "−")
+def cover_evidence(studies):
+    integral, cubic, index = (studies[name] for name in COVER_STUDY_IDS)
+    pairs = set()
+    signatures = set()
+    extended = Counter()
+    hodge_signatures = defaultdict(set)
+    counts = Counter()
+    records = {}
+    for original, refined, fixed in zip(integral["rows"], cubic["rows"], index["rows"], strict=True):
+        record_id = original["id"]
+        pair = original["cubic_content"], original["chern_content"]
+        signature = tuple(refined[key] for key in ("d1", "d2", "d3", "dp"))
+        divisor = fixed["index_divisor"]
+        if (
+            record_id in records
+            or record_id != refined["id"]
+            or record_id != fixed["id"]
+            or (signature[0], signature[3]) != pair
+        ):
+            raise ValueError(f"Cover source data disagree on record {record_id}.")
+        pairs.add(pair)
+        signatures.add(signature)
+        extended[(*signature, divisor)] += 1
+        hodge_signatures[tuple(original["hodge"]), signature].add(divisor)
+        counts[divisor] += 1
+        records[record_id] = original, signature, divisor
+
+    totals = len(pairs), len(signatures), len(extended)
+    summary = index["summary"]
+    nonunit = len(records) - counts[1]
+    refined_hodge = {hodge for (hodge, _), divisors in hodge_signatures.items() if len(divisors) > 1}
+    if (
+        totals != (integral["summary"]["joint_pairs"], cubic["summary"]["joint_quadruples"], summary["signatures_after"])
+        or totals[1] != summary["signatures_before"]
+        or len(records) != summary["records"]
+        or nonunit != summary["nonunit_records"]
+        or len(refined_hodge) != summary["hodge_groups_refined"]
+        or extended != {tuple(row["signature"]): row["count"] for row in index["joint"]}
+        or counts != {row["value"]: row["count"] for row in index["distribution"]}
+    ):
+        raise ValueError("The cohort totals do not match the cover study receipts.")
+
+    first, second = index["witness"]
+    for witness in (first, second):
+        source, signature, divisor = records[witness["id"]]
+        if (
+            tuple(witness["signature"]) != signature
+            or witness["index_divisor"] != divisor
+            or any(witness[key] != source[key] for key in ("hodge", "euler", "hyperplane_indices"))
+        ):
+            raise ValueError(f"The cover witness disagrees with record {witness['id']}.")
+    if (
+        any(first[key] != second[key] for key in ("hodge", "euler", "signature"))
+        or (first["index_divisor"], second["index_divisor"]) != (2, 1)
+        or not any(value % 2 for value in second["hyperplane_indices"])
+    ):
+        raise ValueError("The cover requires a matched witness with an even and an odd-capable index.")
+    return first, second, totals, len(records), nonunit
 
 
-def rounded_box(fig, x, y, width, height, color, edge="none"):
+def box(fig, x, y, width, height, fill, edge="none", radius=.012):
     fig.add_artist(FancyBboxPatch(
-        (x, y), width, height, transform=fig.transSubfigure,
-        boxstyle="round,pad=0,rounding_size=.015",
-        facecolor=color, edgecolor=edge, linewidth=.65, zorder=0,
+        (x, y), width, height, transform=fig.transFigure,
+        boxstyle=f"round,pad=0,rounding_size={radius}",
+        facecolor=fill, edgecolor=edge, linewidth=.6, zorder=0,
     ))
 
 
 def text(fig, x, y, label, size, *, color=INK, weight="normal", **options):
-    return fig.text(x, y, label, fontsize=size, color=color, weight=weight, **options)
+    return fig.text(x, y, label, fontsize=size, color=color, weight=weight, va="center", **options)
 
 
-def panel(fig, x, y, accent, title, metric, description):
-    rounded_box(fig, x, y, .465, .35, "#f8fafb", "#d9e3e9")
-    text(fig, x + .021, y + .308, title, 9.0, color=accent, weight="bold", va="center")
-    text(fig, x + .021, y + .218, metric, 16.4, weight="bold", va="center")
-    text(fig, x + .022, y + .146, description, 7.2, color=MUTED, va="center", linespacing=1.36)
+def rule(fig, x0, x1, y0, y1, color=RULE):
+    fig.add_artist(Line2D((x0, x1), (y0, y1), transform=fig.transFigure, color=color, lw=.75))
 
 
-def axes_style(ax):
-    ax.set_facecolor("#f8fafb")
-    ax.set_axisbelow(True)
-    ax.grid(axis="y", color=PALE, linewidth=.55)
-    ax.tick_params(length=2, width=.6, pad=2, labelsize=5.9, colors=MUTED)
-    ax.spines[["top", "right"]].set_visible(False)
-    for name in ("left", "bottom"):
-        ax.spines[name].set_color("#9aacb8")
-        ax.spines[name].set_linewidth(.6)
-    ax.xaxis.label.set_color(MUTED)
-    ax.yaxis.label.set_color(MUTED)
+def tuple_label(values):
+    return "(" + ", ".join(str(value) for value in values) + ")"
 
 
-def geometry(fig, x, y, data):
-    summary = data["summary"]
-    rows = data["rows"]
-    if (len(rows) != summary["records"] or data["mismatches"]
-            or summary["matched_records"] != len(rows)
-            or sum(len(row["c2"]) for row in rows) != summary["ambient_pairings"]):
-        raise ValueError("The Chern audit counts do not match its record data.")
-    modal = summary["modal_hodge"]
-    points = Counter((row["volume"], row["c2_polarized"]) for row in rows
-                     if not row["product"] and row["hodge"] == modal)
-    if not points or len(points) != summary["modal_signatures"]:
-        raise ValueError("The modal Hodge group does not match the Chern audit.")
-    panel(fig, x, y, TEAL, "Chern pairing audit", f"{summary['ambient_pairings']:,}",
-          f"Second Chern pairings\non {summary['records']:,} archive records")
-
-    ax = fig.add_axes([x + .247, y + .097, .195, .168])
-    axes_style(ax)
-    cloud = sorted(points, key=points.get, reverse=True)
-    volumes, pairings = zip(*cloud, strict=True)
-    ax.scatter(volumes, pairings, c=TEAL, s=[3 + 2 * points[p] ** .5 for p in cloud],
-               alpha=.60, linewidths=0, zorder=3)
-    for key in ("modal_low_id", "modal_high_id"):
-        row = rows[summary[key] - 1]
-        ax.scatter(row["volume"], row["c2_polarized"], s=22, facecolor="#f8fafb",
-                   edgecolor=ORANGE, linewidth=.95, zorder=4)
-    ax.margins(x=.10, y=.16)
-    ax.set_xticks([500, 1250, 2000])
-    ax.set_yticks([150, 225, 300])
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
-    ax.set_xlabel("Polarized degree V", fontsize=6.1, labelpad=2)
-    text(fig, x + .247, y + .281, "Chern pairing T", 6.1, color=MUTED, va="center")
-    text(fig, x + .022, y + .032,
-         f"{len(points):,} distinct pairs at Hodge ({modal[0]}, {modal[1]})",
-         6.7, color=MUTED, va="center")
+def shared_invariants(fig, first):
+    box(fig, .045, .732, .910, .104, INK)
+    for x, label, value in (
+        (.067, r"Shared Hodge numbers $(h^{1,1},h^{2,1})$", tuple_label(first["hodge"])),
+        (.391, r"Euler characteristic", str(first["euler"]).replace("-", "−")),
+        (.625, "Cubic and Chern gcds", tuple_label(first["signature"])),
+    ):
+        text(fig, x, .803, label, 8.25, color="#d6e1da")
+        text(fig, x, .759, value, 12.8, color="white", weight="bold")
+    rule(fig, .363, .363, .749, .817, color="#61736f")
+    rule(fig, .598, .598, .749, .817, color="#61736f")
 
 
-def weighting(fig, x, y, data):
-    medians = data["summary"]["median_euler"]
-    population = data["population"]
-    cdf = data["euler_cdf"]
-    groups = (
-        ("presentation", "record_count_le", "non_product_presentations", TEAL, "-", "Per record"),
-        ("equal_pair", "pair_count_le", "distinct_non_product_hodge_pairs", PURPLE, "--", "Per Hodge pair"),
-    )
-    panel(fig, x, y, PURPLE, "Catalogue weighting",
-          f"{minus(medians['presentation'])} → {minus(medians['equal_pair'])}",
-          "Median Euler\ncharacteristic by weight")
-
-    ax = fig.add_axes([x + .247, y + .097, .195, .168])
-    axes_style(ax)
-    threshold = [row["euler"] for row in cdf]
-    ax.axhline(.5, color="#a8b4be", linewidth=.6, zorder=1)
-    for median_key, count_key, total_key, color, style, _ in groups:
-        total = population[total_key]
-        if cdf[-1][count_key] != total:
-            raise ValueError("The weighted Euler distribution does not end at its population.")
-        median_index = next(i for i, point in enumerate(cdf) if point[count_key] * 2 >= total)
-        if threshold[median_index] != medians[median_key]:
-            raise ValueError("The reported Euler median does not match its cumulative distribution.")
-        share = [row[count_key] / total for row in cdf]
-        ax.step(threshold, share, where="post", color=color, linewidth=1.25, linestyle=style, zorder=3)
-        ax.plot(medians[median_key], share[median_index], marker="o", color=color,
-                markeredgecolor="white", markeredgewidth=.55, markersize=4, zorder=4)
-    ax.set_xlim(threshold[0] - 5, threshold[-1] + 4)
-    ax.set_ylim(-.03, 1.06)
-    ax.set_xticks([-200, -100, 0])
-    ax.set_yticks([0, .5, 1], ["0%", "50%", "100%"])
-    ax.set_xlabel("Euler characteristic χ", fontsize=6.1, labelpad=2)
-    text(fig, x + .247, y + .281, "Cumulative share", 6.1, color=MUTED, va="center")
-    handles = [Line2D([], [], color=color, linestyle=style, label=label, linewidth=1.35)
-               for _, _, _, color, style, label in groups]
-    legend = fig.legend(handles=handles, loc="center left", bbox_to_anchor=(x + .018, y + .033),
-                        frameon=False, ncols=2, fontsize=6.3, handlelength=1.4,
-                        columnspacing=1, handletextpad=.35)
-    for label in legend.get_texts():
-        label.set_color(MUTED)
+def configuration(fig, x, witness, accent, pale):
+    text(fig, x, .611, "Configuration degrees", 7.7, color=MUTED)
+    for i, (dimension, row) in enumerate(zip(witness["ambient_dimensions"], witness["configuration"], strict=True)):
+        y = .558 - .054 * i
+        text(fig, x, y, rf"$\mathbb{{P}}^{{{dimension}}}$", 8.6, color=MUTED)
+        for j, degree in enumerate(row):
+            left = x + .047 + .027 * j
+            box(fig, left, y - .019, .024, .038, pale if degree else PAPER, radius=.003)
+            text(fig, left + .012, y, str(degree), 8.1, ha="center", color=accent if degree else MUTED)
 
 
-def bicubic(fig, x, y, data):
-    summary = data["summary"]
-    low, high = data["charge_range_per_axis"]
-    values = {(row["a"], row["b"]): row["paired_excess"] for row in data["rows"]}
-    grid = list(range(low, high + 1))
-    if (len(values) != summary["points"] or len(values) != len(grid) ** 2
-            or sum(value > 0 for value in values.values()) != summary["jumping_points"]):
-        raise ValueError("The cohomology grid does not match its summary.")
-    panel(fig, x, y, ORANGE, "Bicubic cohomology",
-          f"{summary['jumping_points']:,} of {summary['points']:,}",
-          "Charge pairs with a jump\non one smooth bicubic")
-
-    ax = fig.add_axes([x + .237, y + .099, .176, .170])
-    axes_style(ax)
-    ax.grid(False)
-    excess = [[values[a, b] for a in grid] for b in grid]
-    color = LinearSegmentedColormap.from_list("jump", ["#edf0f2", "#e59d6e", "#813b24"])
-    edges = [point - .5 for point in range(low, high + 2)]
-    maximum = max(values.values())
-    if maximum != summary["max_paired_excess"] or values[3, -3] != summary["witness_paired_excess"]:
-        raise ValueError("The cohomology grid does not match its reported maximum and witness.")
-    image = ax.pcolormesh(edges, edges, excess, vmin=0, vmax=maximum,
-                          cmap=color, shading="flat", antialiased=False)
-    ax.set_aspect("equal")
-    ax.plot([low, high], [high, low], color="#6e5149", alpha=.85,
-            linewidth=.55, linestyle="--")
-    ax.scatter(3, -3, s=19, facecolors="none", edgecolors=INK, linewidths=.75, zorder=4)
-    ax.set_xticks([low, 0, high])
-    ax.set_yticks([low, 0, high])
-    ax.set_xlabel("Charge a", fontsize=6.1, labelpad=2)
-    ax.set_ylabel("Charge b", fontsize=6.1, labelpad=2)
-    cax = fig.add_axes([x + .404, y + .110, .015, .148])
-    bar = fig.colorbar(image, cax=cax, ticks=[0, maximum])
-    bar.solids.set_rasterized(False)
-    bar.outline.set_visible(False)
-    bar.ax.tick_params(length=0, pad=2, labelsize=5.8, colors=MUTED)
-    text(fig, x + .022, y + .035, "Extra classes in H¹ and H²",
-         6.7, color=MUTED, va="center")
+def witness_panel(fig, x, witness, accent, pale, outcome):
+    box(fig, x, .333, .442, .365, "white", RULE)
+    x += .020
+    text(fig, x, .660, f"CICY3 record {witness['id']}", 11.6, weight="bold")
+    configuration(fig, x, witness, accent, pale)
+    rule(fig, x + .189, x + .189, .428, .592)
+    text(fig, x + .205, .611, r"Indices on $H_1,H_2,H_3$", 7.7, color=MUTED)
+    for i, value in enumerate(witness["hyperplane_indices"]):
+        left = x + .208 + .049 * i
+        box(fig, left, .529, .042, .057, accent if value % 2 else pale, radius=.008)
+        text(fig, left + .021, .558, str(value), 11.5, ha="center", weight="bold",
+             color="white" if value % 2 else accent)
+    text(fig, x + .205, .474, fr"Index gcd $d_\chi={witness['index_divisor']}$", 10.8, weight="bold")
+    rule(fig, x, x + .402, .420, .420)
+    text(fig, x, .376, outcome, 9.1, color=accent, weight="bold")
 
 
-def integral_totals(data, refinement, atlas, chern):
-    pairs_by_hodge = defaultdict(set)
-    refined_by_hodge = defaultdict(set)
-    original = {}
-    for row in data["rows"]:
-        hodge = tuple(row["hodge"])
-        pair = row["cubic_content"], row["chern_content"]
-        original[row["id"]] = hodge, pair
-        pairs_by_hodge[hodge].add(pair)
-    for row in refinement["rows"]:
-        hodge, pair = original[row["id"]]
-        signature = row["d1"], row["d2"], row["d3"], row["dp"]
-        if (signature[0], signature[3]) != pair:
-            raise ValueError("A refined signature has changed its original integral cell.")
-        refined_by_hodge[hodge].add(signature)
-    non_product = {row["id"]: tuple(row["hodge"]) for row in chern["rows"] if not row["product"]}
-    population = atlas["population"]
-    split = sum(len(joint) > 1 for joint in pairs_by_hodge.values())
-    refined = sum(len(joint) > 1 for joint in refined_by_hodge.values())
-    total = len(pairs_by_hodge)
-    pairs = len(set().union(*pairs_by_hodge.values()))
-    quadruples = len(set().union(*refined_by_hodge.values()))
-    summary = data["summary"]
-    refinement_summary = refinement["summary"]
-    if ({key: hodge for key, (hodge, _) in original.items()} != non_product
-            or len(data["rows"]) != len(original)
-            or len(original) != summary["records"]
-            or len(original) != population["non_product_presentations"]
-            or total != population["distinct_non_product_hodge_pairs"]
-            or (split, total) != (summary["split_hodge_groups"], summary["hodge_groups"])
-            or {row["id"] for row in refinement["rows"]} != original.keys()
-            or len(refinement["rows"]) != len(original)
-            or (pairs, quadruples, split, refined, total) != (
-                refinement_summary["joint_pairs"], refinement_summary["joint_quadruples"],
-                refinement_summary["split_by_pair"], refinement_summary["split_by_quadruple"],
-                refinement_summary["hodge_groups"],
-            )):
-        raise ValueError("The integral-invariant audit does not match its reported non-product cohort.")
-    return pairs, quadruples, split, refined, total
-
-
-def integral_panel(fig, x, y, counts):
-    pairs, quadruples, split, refined, total = counts
-    panel(fig, x, y, TEAL, "Integral cubic refinement",
-          f"{pairs:,} → {quadruples:,}", "Ambient signatures\nwith two added cubic gcds")
-    ax = fig.add_axes([x + .247, y + .103, .180, .151])
-    ax.set_xlim(0, total)
-    ax.set_ylim(-.5, 1.5)
-    ax.set_axis_off()
-    ax.barh([1, 0], [total, total], height=.34, color="#dfe8ed", linewidth=0)
-    ax.barh([1, 0], [split, refined], height=.34, color=["#587288", TEAL], linewidth=0)
-    for row, value, label in ((1, split, "Pair"), (0, refined, "Four")):
-        ax.text(3, row + .27, label, fontsize=6.8, color=MUTED, va="bottom")
-        ax.text(value + 5, row, f"{value}", fontsize=7.0, color=INK, va="center")
-    text(fig, x + .022, y + .045, f"Hodge groups split out of {total}", 6.7, color=MUTED, va="center")
+def cohort_panel(fig, totals, records, nonunit):
+    text(fig, .046, .277, f"Distinct ambient signatures across {records:,} non-product records", 9.4, weight="bold")
+    labels = ("Cubic and Chern", "+ repeated and diagonal", "+ the index gcd")
+    for x, total, label in zip((.114, .308, .509), totals, labels, strict=True):
+        text(fig, x, .183, str(total), 23, weight="bold", ha="center", color=TEAL)
+        text(fig, x, .115, label, 8.4, color=MUTED, ha="center")
+    for x in (.205, .406):
+        text(fig, x, .183, "→", 17, color=MUTED, ha="center")
+    rule(fig, .642, .642, .094, .229)
+    text(fig, .669, .183, f"{nonunit:,} records", 16, weight="bold", color=RUST)
+    text(fig, .669, .115, "with index gcd above one", 8.4, color=MUTED)
+    rule(fig, .045, .955, .076, .076)
+    text(fig, .045, .041, "CIPro v1.0 CICY3 archive · Exact Python audit of the ambient divisor lattices",
+         7.4, color=MUTED)
 
 
 def render(studies, pdf, png):
-    chern = studies["chern-audit"]
-    atlas = studies["atlas-comparison"]
-    counts = integral_totals(studies["integral-invariants"], studies["cubic-refinement"], atlas, chern)
+    first, second, totals, records, nonunit = cover_evidence(studies)
+    odd_axis = next(i for i, value in enumerate(second["hyperplane_indices"], start=1) if value % 2)
+    odd_value = second["hyperplane_indices"][odd_axis - 1]
     with matplotlib.rc_context({"font.family": "DejaVu Sans", "pdf.fonttype": 42}):
-        fig = Figure(figsize=FIGSIZE, facecolor="white")
-        rounded_box(fig, .02, .825, .96, .158, INK)
-        text(fig, .045, .930, "Exact studies of CICY threefolds", 16.0,
-             color="white", weight="bold", va="center")
-        text(fig, .046, .867, "Configurations, catalogue weights, cohomology, and integral divisor lattices",
-             7.8, color="#cfdee8", va="center")
-        geometry(fig, .02, .454, chern)
-        weighting(fig, .515, .454, atlas)
-        bicubic(fig, .02, .077, studies["bicubic-exact"])
-        integral_panel(fig, .515, .077, counts)
-        text(fig, .022, .035, "CIPro v1.0 archive · Exact native Python calculations", 7.2, color=MUTED, va="center")
+        fig = Figure(figsize=FIGSIZE, facecolor=PAPER)
+        text(fig, .044, .931, "Same Hodge numbers, different index gcds", 18, weight="bold")
+        text(fig, .046, .872, "The Riemann–Roch line-bundle index separates two matched CICY threefold records.",
+             9.3, color=MUTED)
+        shared_invariants(fig, first)
+        witness_panel(fig, .045, first, TEAL, TEAL_PALE, "All ambient line-bundle indices are even")
+        witness_panel(fig, .513, second, RUST, RUST_PALE,
+                      fr"Odd index at $H_{odd_axis}$ · $\chi(X,\mathcal{{O}}_X(H_{odd_axis}))={odd_value}$")
+        cohort_panel(fig, totals, records, nonunit)
         pdf.parent.mkdir(parents=True, exist_ok=True)
         png.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(pdf, format="pdf", metadata={

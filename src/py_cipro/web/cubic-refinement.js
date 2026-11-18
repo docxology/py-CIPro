@@ -17,7 +17,12 @@ export function mountCubicRefinement(parent, data, integral, openRecords, openWi
   download.download = "cubic-refinement.json";
   const caption = node("div");
   caption.append(title, subtitle);
-  heading.append(caption, download);
+  const fixedDivisor = node("a", "Download index-divisibility audit JSON", "text-button");
+  fixedDivisor.href = "/research/index-divisibility.json";
+  fixedDivisor.download = "index-divisibility.json";
+  const downloads = node("div", "", "refinement-downloads");
+  downloads.append(download, fixedDivisor);
+  heading.append(caption, downloads);
   section.append(heading);
   parent.append(section);
   if (!data) {

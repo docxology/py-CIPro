@@ -104,10 +104,13 @@ class DashboardTests(unittest.TestCase):
             "chern-audit", "cicy3-atlas", "cicy3-structure", "cicy3-multiplicity",
             "atlas-comparison", "line-bundle-cohomology", "bicubic-exact", "integral-invariants",
         })
-        self.assertEqual(len(provenance["assets_sha256"]), 17)
+        self.assertEqual(len(provenance["assets_sha256"]), 18)
         self.assertIn("graphical-abstract.pdf", provenance["assets_sha256"])
         self.assertIn("graphical-abstract.png", provenance["assets_sha256"])
         self.assertIn("cubic-refinement.json", provenance["assets_sha256"])
+        self.assertEqual(set(provenance["cover"]["studies_sha256"]), {
+            "integral-invariants", "cubic-refinement", "index-divisibility",
+        })
         for name, digest in provenance["assets_sha256"].items():
             route = "/api/research" if name == "manuscript-analysis.json" else f"/research/{name}"
             with self.subTest(route=route):

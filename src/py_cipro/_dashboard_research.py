@@ -24,7 +24,7 @@ CUBIC_STUDY = "cubic-refinement"
 COVER_PREVIEW_NAME = "graphical-abstract.png"
 FIGURE_STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", INTEGRAL_STUDY)
 STUDY_NAMES = (*FIGURE_STUDIES, CUBIC_STUDY)
-STUDY_DATA = tuple(f"{name}.json" for name in STUDY_NAMES)
+STUDY_DATA = (*(f"{name}.json" for name in STUDY_NAMES), "index-divisibility.json")
 PDF_NAMES = (
     "manuscript.pdf",
     "graphical-abstract.pdf",
@@ -57,7 +57,9 @@ def research_bundle():
     digests = {name: sha256(bodies[name]).hexdigest() for name in asset_names}
     if provenance.get("assets_sha256") != digests:
         raise ValueError("The bundled research asset digests do not match their provenance.")
-    if provenance["cover"]["studies_sha256"] != {name: digests[f"{name}.json"] for name in STUDY_NAMES}:
+    cover_studies = provenance["cover"]["studies_sha256"]
+    if not cover_studies or any(digests.get(f"{name}.json") != digest or digest is None
+                                for name, digest in cover_studies.items()):
         raise ValueError("The bundled graphical abstract uses a different study record.")
     analysis = json.loads(bodies[ANALYSIS_NAME])
     if analysis.get("schema_version") != 1:

@@ -3,7 +3,7 @@ paper:
   date: "2026-11-17"
   cover:
     image: "cover/graphical-abstract.pdf"
-    alt: "Four panels show the second Chern pairing audit, Euler medians under two catalogue weights, cohomology jumps on one smooth bicubic, and the increase in ambient signatures and split Hodge groups after adding repeated and diagonal cubic divisibility."
+    alt: "CICY3 records 7626 and 7635 share Hodge numbers (3, 47), Euler characteristic minus 88, and cubic and Chern gcds (2, 2, 2, 4). Their displayed configuration matrices give ambient index gcds of two and one. The first record has only even indices. The third hyperplane on the second record has index five. Across 7,868 non-product records, two gcds give 36 signatures, four give 50, and including the index gcd gives 51. A total of 138 records have index gcd greater than one."
 authors:
   - name: "Daniel Friedman"
     orcid: "0000-0001-6232-9096"

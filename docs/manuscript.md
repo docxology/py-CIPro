@@ -137,12 +137,12 @@ directory. Generate `SHA256SUMS` in that directory with relative paths.
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
 - `cover/` contains the rendered `graphical-abstract.pdf` and `graphical-abstract.png`.
 - `figures/` contains all eight named PDF exports and `figure_registry.json`.
-- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, `integral-invariants.json`, `cubic-refinement.json`, and the renderer's `software_and_analysis.json`.
+- `data/` contains all nine tracked analysis files, `manuscript_variables.json`, and the renderer's `software_and_analysis.json`.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
 
-The Figure 6 controls and the four-panel graphical abstract use the cubic
-refinement receipt. The separate fixed-divisor receipt
-`index-divisibility.json` binds those rows to the exact line-bundle index.
+The Figure 6 controls use the cubic refinement receipt. The graphical abstract
+also uses the integral-lattice and fixed-divisor receipts. The dashboard links
+to `index-divisibility.json` beside the cubic-refinement controls.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT
 --title TITLE --pages PAGES` from the project checkout. Use the full

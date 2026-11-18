@@ -138,6 +138,7 @@ The dashboard constructs symbolic values from these tags and treats ordinary str
 | `GET /research/manuscript.pdf` | Packaged manuscript PDF |
 | `GET /research/chern-audit.json` | Exact standalone data for a supplementary study |
 | `GET /research/cubic-refinement.json` | Record-level four-part cubic signature data |
+| `GET /research/index-divisibility.json` | Exact index gcds, catalogue counts and the two cover witnesses |
 | `GET /api/research/records?figure=cubic-refinement&d1=1&d2=2&d3=2&dp=4&h11=5&h21=53` | Exact subgroup IDs within a Hodge pair. An Euler filter is also available. |
 | `POST /api/compute` | Selected `CIDim`, `CY`, and `Euler` properties for one archived record |
 | `POST /api/run` | One eligible named method with explicit arguments and options |

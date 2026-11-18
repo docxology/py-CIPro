@@ -260,9 +260,10 @@
 
 .integral-refinement { grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 1.2rem; min-width: 0; scroll-margin-top: 1rem; }
 .refinement-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: .75rem 1.25rem; }
-.refinement-heading > div { flex: 1 1 22rem; }
+.refinement-heading > div:first-child { flex: 1 1 22rem; }
 .refinement-heading h4 { font-size: 1rem; margin: 0; letter-spacing: -.01em; }
-.refinement-heading > a { flex: 0 0 auto; text-decoration: none; }
+.refinement-downloads { display: flex; gap: .35rem .75rem; flex-wrap: wrap; }
+.refinement-downloads a { text-decoration: none; }
 .refinement-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; margin: 1rem 0; }
 .refinement-metrics > div { border: 1px solid var(--line); border-radius: 8px; padding: .75rem .85rem; background: var(--research-graph-bg); }
 .refinement-metrics dt { font-size: .73rem; color: var(--dim); line-height: 1.4; }
