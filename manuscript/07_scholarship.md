@@ -65,6 +65,8 @@ The CIPro manual illustrates this dependence in Section 3.2 using a codimension-
 
 ## Research software and reproducible inputs
 
+Replaying a census requires the release member and grouping rules. Replaying a rank calculation requires the defining equations, field, and charge. Replaying a backend comparison also requires the executable identity. [@sec:evidence] records the inputs for these comparisons.
+
 | Work | Computation and input | Evidence relevant here |
 | --- | --- | --- |
 | CIPro [@anderson-cipro; @cipro-release] | Wolfram Language package for products of projective spaces, configuration associations, defining equations, line bundles, and several bundled archives. | The pinned release supplies the data and an upstream implementation for separate kernel-based comparisons. |
@@ -72,5 +74,3 @@ The CIPro manual illustrates this dependence in Section 3.2 using a codimension-
 | CYTools [@cytools] | Topological computations for Calabi–Yau hypersurfaces in toric varieties, with polytope and triangulation input. | A complementary computational setting for characteristic classes and intersection data. |
 | py-CIPro | Python dispatch for a documented subset, a callable Wolfram path, and a dashboard backed by the bundled text archive. | Reproducible checks cover specific inputs and the source data behind the figures. |
 : Research software considered here and the inputs on which the cited computations operate. {#tbl:scholarship_software}
-
-Replaying a census requires the release member and grouping rules. Replaying a rank calculation requires the defining equations, field, and charge. Replaying a backend comparison also requires the executable identity. [@sec:evidence] records the inputs for these comparisons.
