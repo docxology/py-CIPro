@@ -94,6 +94,25 @@ The inclusions of evaluation sets give $d_1\mid d_2\mid d_3$, where $d_1=g_3$. T
 
 Records {{REFINEMENT_WITNESS_FIRST_ID}} and {{REFINEMENT_WITNESS_SECOND_ID}} share Hodge pair $(5,53)$, Euler characteristic $-96$, ambient dimensions, and the archived favorable flag. Their entire Hodge group has one original content pair, $(1,4)$. Their four-part signatures are ${{REFINEMENT_WITNESS_FIRST_SIGNATURE}}$ and ${{REFINEMENT_WITNESS_SECOND_SIGNATURE}}$, separated by $d_2$. The Hodge pair $(4,32)$ supplies a separate $d_3$ comparison. Records 6177 and 6232 share $(d_1,d_2,d_p)=(2,2,4)$ and have $d_3=2$ and $4$, respectively. Both comparisons concern the supplied ambient lattices. The full-lattice obstruction below uses rank-one lattices, for which all three cubic divisibilities equal $|\mu(H,H,H)|$ at a primitive generator $H$.
 
+## Fixed divisor of the ambient line-bundle index
+
+::: {.proposition #prop:ambient_index_fixed_divisor title="A finite formula for the index fixed divisor"}
+Let $Q(x)=(2\mu(x,x,x)+\lambda(x))/12$ for $x\in L$, the line-bundle index in [@eq:line_index]. Its fixed divisor $d_\chi$ is the nonnegative generator of the ideal of all its integer values. On the ambient lattice,
+
+$$
+d_\chi=\gcd\!\left(d_1,\ \{Q(H_i)\}_i,\
+       \left\{\frac{d_{iij}+d_{ijj}}{2}\right\}_{i<j}\right).
+$$ {#eq:ambient_index_fixed_divisor}
+
+Write $x=\sum_i k_iH_i$. In the product binomial basis, each coefficient of $Q$ is a forward difference at the origin. It is therefore an integer combination of index values. Each index value is in turn an integer combination of those coefficients because $\binom{k_i}{a}$ is integral at every integer $k_i$. Expanding $k_i^2=k_i+2\binom{k_i}{2}$ and $k_i^3=k_i+6\binom{k_i}{2}+6\binom{k_i}{3}$ gives the linear coefficients $Q(H_i)$ and the mixed quadratic coefficients $(d_{iij}+d_{ijj})/2$. The remaining coefficients are the cubic tensor entries, with $d_{iii}$ occurring also in degree two. Their joint gcd is $d_1$. [@hirzebruch-riemann-roch; @watt-fixed-divisor]
+:::
+
+The signed evaluations of $Q$ at $H_i$, $2H_i$, $H_i\pm H_j$, and $H_i+H_j+H_k$ give an independent arithmetic check. The first two yield $Q(H_i)$ and $d_{iii}$ by subtraction. The two signed pair evaluations, after subtracting their pure terms, give the mixed quadratic coefficient and recover $d_{iij},d_{ijj}$ by addition and subtraction. The alternating third difference on three distinct generators gives $d_{ijk}$. The code compares the gcd of these evaluations with [@eq:ambient_index_fixed_divisor] on every non-product record.
+
+The formula gives $d_\chi\mid d_1$. The index identity then gives $d_\chi\mid d_p$. At a prime greater than three, $12$ is invertible modulo every prime power. Consequently $d_\chi$ and $\gcd(d_1,d_p)$ have the same prime powers away from $2$ and $3$. The distinction at these two primes can depend on how the cubic and Chern evaluations combine in the index.
+
+The fixed divisor exceeds one on {{INDEX_DIVISIBILITY_NONUNIT}} of {{INTEGRAL_RECORD_COUNT}} rows. Appending it increases the number of joint signatures from {{REFINEMENT_QUADRUPLES}} to {{INDEX_DIVISIBILITY_SIGNATURES}}. It adds distinctions within {{INDEX_DIVISIBILITY_HODGE_REFINED}} Hodge groups that already had multiple signatures. For example, IDs {{INDEX_DIVISIBILITY_WITNESS_FIRST_ID}} and {{INDEX_DIVISIBILITY_WITNESS_SECOND_ID}} share Hodge pair $(3,47)$, Euler characteristic $-88$, the archived favorable flag, and $(d_1,d_2,d_3,d_p)=(2,2,2,4)$. Their fixed divisors are {{INDEX_DIVISIBILITY_WITNESS_FIRST_VALUE}} and {{INDEX_DIVISIBILITY_WITNESS_SECOND_VALUE}}. The second record has an odd hyperplane index of $5$. The first has only even coefficients in [@eq:ambient_index_fixed_divisor]. This is a comparison of the supplied ambient images.
+
 ## Full-lattice comparison of two rank-one threefolds
 
 ::: {.example #thm:integral_content_witness title="Equal Hodge numbers and different integral cup products"}

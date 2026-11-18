@@ -4,12 +4,12 @@
 import argparse
 from collections import Counter, defaultdict
 from hashlib import sha256
-from itertools import combinations, combinations_with_replacement, product
+from itertools import combinations, product
 import json
 from math import gcd
 from pathlib import Path
 
-from py_cipro._research_chern import ambient_intersections
+from py_cipro._research_cubic import SIGNATURE_KEYS as INVARIANTS, _record_signature
 from py_cipro.catalog import _cicy3_source_rows, get_catalog
 
 
@@ -17,18 +17,6 @@ ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "data" / "integral-invariants.json"
 WITNESS_IDS = (7702, 7741)
 DIAGONAL_WITNESS_IDS = (6177, 6232)
-INVARIANTS = ("d1", "d2", "d3", "dp")
-
-
-def coefficient_contents(tensor, rank):
-    """Generate the three cubic content ideals from symmetric tensor entries."""
-    d1 = gcd(*tensor.values())
-    squares = [tensor[tuple(sorted((i, i, j)))] for i, j in product(range(rank), repeat=2)]
-    diagonal = [tensor[i, i, i] for i in range(rank)]
-    for i, j in combinations(range(rank), 2):
-        a, b = tensor[i, i, j], tensor[i, j, j]
-        diagonal.extend((3 * (a + b), 3 * (a - b)))
-    return d1, gcd(2 * d1, *squares), gcd(6 * d1, *diagonal)
 
 
 def evaluated_contents(tensor, rank):
@@ -98,30 +86,22 @@ def compute_cubic_refinement(reference_path=REFERENCE):
     witnesses = {}
 
     for record, prior in zip(nonproducts, reference["rows"], strict=True):
-        _, triple, pairings, _ = ambient_intersections(record)
+        row, tensor, pairings = _record_signature(record, sources[record.id - 1]["C"][1])
         rank = len(record.ambient_dimensions)
-        tensor = {ijk: triple(ijk) for ijk in combinations_with_replacement(range(rank), 3)}
-        d1, d2, d3 = coefficient_contents(tensor, rank)
-        dp = gcd(*pairings)
+        signature = tuple(row[key] for key in INVARIANTS)
+        d1, d2, d3, dp = signature
         hodge = (record.h11, record.h21)
 
         if (
             (record.id, list(hodge), record.euler, pairings, d1, dp)
             != (prior["id"], prior["hodge"], prior["euler"], prior["c2"],
                 prior["cubic_content"], prior["chern_content"])
-            or tuple(pairings) != sources[record.id - 1]["C"][1]
         ):
             raise ValueError(f"Archive or prior integral-audit mismatch for record {record.id}.")
         if (d2, d3) != evaluated_contents(tensor, rank):
             raise ValueError(f"Value-based cubic content check failed for record {record.id}.")
-        if min(d1, d2, d3) <= 0 or d2 % d1 or d3 % d2 or 2 * d1 % d2 or 6 * d1 % d3:
-            raise ValueError(f"Cubic content divisibility chain failed for record {record.id}.")
-        if dp % gcd(2 * d3, 12):
-            raise ValueError(f"Diagonal Riemann–Roch divisibility failed for record {record.id}.")
 
-        signature = (d1, d2, d3, dp)
         pair = (d1, dp)
-        row = {"id": record.id, **dict(zip(INVARIANTS, signature, strict=True))}
         rows.append(row)
         joint[signature] += 1
         for key in INVARIANTS:

@@ -14,13 +14,16 @@ from ._native_errors import NativeUnsupportedError
 from ._research_atlas import atlas_comparison
 from ._research_bicubic import COEFFICIENTS, bicubic_study_row
 from ._research_chern import polarized_invariants
+from ._research_cubic import SIGNATURE_KEYS, _valid_signature, cubic_signature
 from ._research_integral import integral_invariants
 from .catalog import _cicy3_source_rows, get_catalog
 
 
 INTEGRAL_STUDY = "integral-invariants"
+CUBIC_STUDY = "cubic-refinement"
 COVER_PREVIEW_NAME = "graphical-abstract.png"
-STUDY_NAMES = ("chern-audit", "atlas-comparison", "bicubic-exact", INTEGRAL_STUDY)
+FIGURE_STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", INTEGRAL_STUDY)
+STUDY_NAMES = (*FIGURE_STUDIES, CUBIC_STUDY)
 STUDY_DATA = tuple(f"{name}.json" for name in STUDY_NAMES)
 PDF_NAMES = (
     "manuscript.pdf",
@@ -29,7 +32,7 @@ PDF_NAMES = (
     "cicy3-structure.pdf",
     "cicy3-multiplicity.pdf",
     "line-bundle-cohomology.pdf",
-    *(f"{name}.pdf" for name in STUDY_NAMES),
+    *(f"{name}.pdf" for name in FIGURE_STUDIES),
 )
 ANALYSIS_NAME = "manuscript-analysis.json"
 PROVENANCE_NAME = "provenance.json"
@@ -66,12 +69,18 @@ def research_bundle():
         raise ValueError("The exact bicubic study uses a different native receipt.")
     if bicubic["coefficient_matrix"] != [list(row) for row in COEFFICIENTS]:
         raise ValueError("The exact bicubic study uses a different smooth member.")
-    _verify_integral_study(studies[INTEGRAL_STUDY], get_catalog())
+    catalog = get_catalog()
+    _verify_integral_study(studies[INTEGRAL_STUDY], catalog)
+    _verify_cubic_study(studies[CUBIC_STUDY], studies[INTEGRAL_STUDY], digests[f"{INTEGRAL_STUDY}.json"], catalog)
     return ResearchBundle(bodies, analysis, provenance, studies)
 
 
 def _integral_pair(row):
     return row["cubic_content"], row["chern_content"]
+
+
+def _cubic_values(row):
+    return tuple(row[key] for key in SIGNATURE_KEYS)
 
 
 def _matching_integral_cells(cells, expected):
@@ -131,6 +140,70 @@ def _verify_integral_study(study, catalog):
             raise ValueError("The integral-lattice witness does not match its source record.")
 
 
+def _verify_cubic_study(study, integral, integral_digest, catalog):
+    """Bind the refined signatures, cohort counts, and witnesses to Figure 6's source rows."""
+    if (
+        study["schema_version"] != 1 or tuple(study["signature_order"]) != SIGNATURE_KEYS
+        or study["integral_receipt_sha256"] != integral_digest
+    ):
+        raise ValueError("The cubic refinement uses a different ambient lattice receipt.")
+    joint = Counter()
+    signatures_by_hodge = defaultdict(set)
+    old_pairs_by_hodge = defaultdict(set)
+    refined_by_pair = defaultdict(set)
+    refined_by_hodge_and_pair = defaultdict(set)
+    by_id = {}
+    for row, prior in zip(study["rows"], integral["rows"], strict=True):
+        signature = _cubic_values(row)
+        pair = _integral_pair(prior)
+        if (
+            row.keys() != {"id", *SIGNATURE_KEYS} or row["id"] != prior["id"]
+            or (signature[0], signature[3]) != pair or not _valid_signature(signature)
+        ):
+            raise ValueError("A refined cubic signature does not match its integral-lattice row.")
+        hodge = tuple(prior["hodge"])
+        joint[signature] += 1
+        signatures_by_hodge[hodge].add(signature)
+        old_pairs_by_hodge[hodge].add(pair)
+        refined_by_pair[pair].add(signature)
+        refined_by_hodge_and_pair[hodge, pair].add(signature)
+        by_id[row["id"]] = (row, prior)
+    reported_joint = {tuple(cell["signature"]): cell["count"] for cell in study["joint"]}
+    if len(reported_joint) != len(study["joint"]) or reported_joint != joint:
+        raise ValueError("The cubic refinement counts do not match its source signatures.")
+    expected_summary = {
+        "records": len(by_id),
+        "joint_pairs": len(refined_by_pair),
+        "joint_quadruples": len(joint),
+        "hodge_groups": len(signatures_by_hodge),
+        "split_by_pair": sum(len(pairs) > 1 for pairs in old_pairs_by_hodge.values()),
+        "split_by_quadruple": sum(len(signatures) > 1 for signatures in signatures_by_hodge.values()),
+        "pair_cells_refined": sum(len(signatures) > 1 for signatures in refined_by_pair.values()),
+        "hodge_pair_cells": len(refined_by_hodge_and_pair),
+        "hodge_pair_cells_refined": sum(len(signatures) > 1 for signatures in refined_by_hodge_and_pair.values()),
+        "hodge_groups_refined": sum(
+            len(signatures) > len(old_pairs_by_hodge[hodge]) for hodge, signatures in signatures_by_hodge.items()
+        ),
+    }
+    if study["summary"] != expected_summary:
+        raise ValueError("The cubic refinement summary does not match its source signatures.")
+    for key, differs in (("witness", "d2"), ("diagonal_witness", "d3")):
+        first, second = study[key]
+        shared = {"hodge", "euler", *SIGNATURE_KEYS} - {differs}
+        if any(first[name] != second[name] for name in shared) or first[differs] == second[differs]:
+            raise ValueError("The cubic witnesses do not exhibit the stated refinement.")
+        for witness in (first, second):
+            row, prior = by_id[witness["id"]]
+            record = catalog.record(witness["id"])
+            if (
+                any(witness[name] != value for name, value in row.items())
+                or any(witness[name] != prior[name] for name in ("hodge", "euler", "favourable", "c2"))
+                or record.ambient_dimensions != tuple(witness["ambient_dimensions"])
+                or record.configuration != tuple(tuple(degrees) for degrees in witness["configuration"])
+            ):
+                raise ValueError("The cubic witness does not match its archive record.")
+
+
 def verify_catalog_binding(bundle, catalog):
     metadata = bundle.analysis["catalog"]
     if (
@@ -149,7 +222,7 @@ def verify_catalog_binding(bundle, catalog):
 def _query_fields(query):
     if len(query) > 128:
         raise ValueError("The research selection is too long.")
-    pairs = parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=5)
+    pairs = parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=7)
     fields = dict(pairs)
     if len(fields) != len(pairs):
         raise ValueError("Supply each research selection field once.")
@@ -301,6 +374,32 @@ def _integral_selection(fields, study):
     return ids, label
 
 
+def _cubic_selection(fields, study, catalog):
+    if fields.keys() == {"record_id"}:
+        record_id = _number(fields["record_id"])
+        reference = _integral_record(study, record_id)
+        return [record_id], f"Record {record_id} · cubic signature {_cubic_values(reference)}"
+
+    required = set(SIGNATURE_KEYS)
+    if fields.keys() not in (required, required | {"h11", "h21"}, required | {"euler"}):
+        raise ValueError("Select all four cubic signature coordinates and optionally a Hodge pair or Euler value.")
+    signature = tuple(_number(fields[key]) for key in SIGNATURE_KEYS)
+    if min(signature[:3]) < 1 or signature[3] < 0:
+        raise ValueError("Cubic signature coordinates must be positive, with a nonnegative Chern content.")
+    ids = [row["id"] for row in study["rows"] if _cubic_values(row) == signature]
+    label = f"Cubic signature {signature}"
+    if "h11" in fields:
+        hodge = tuple(_number(fields[key]) for key in ("h11", "h21"))
+        records = (catalog.record(number) for number in ids)
+        ids = [record.id for record in records if (record.h11, record.h21) == hodge]
+        label += f" · Hodge pair {hodge}"
+    elif "euler" in fields:
+        euler = _number(fields["euler"])
+        ids = [number for number in ids if catalog.record(number).euler == euler]
+        label += f" · Euler characteristic {euler}"
+    return ids, label
+
+
 def record_selection(query, analysis, catalog, studies=None):
     fields = _query_fields(query)
     figure = fields.pop("figure", None)
@@ -323,6 +422,8 @@ def record_selection(query, analysis, catalog, studies=None):
         ids, label = [record.id], "Bicubic · source configuration for the specified smooth member"
     elif figure == INTEGRAL_STUDY and studies is not None:
         ids, label = _integral_selection(fields, studies[figure])
+    elif figure == CUBIC_STUDY and studies is not None:
+        ids, label = _cubic_selection(fields, studies[figure], catalog)
     else:
         raise ValueError("Choose a valid manuscript figure selection.")
     return {"ids": ids, "matched": len(ids), "label": label}
@@ -404,7 +505,7 @@ def prepare_research(payload, bundle, catalog):
             raise ValueError("Select one plotted Euler threshold or ambient factor count.")
         selector = dict(zip(keys, _study_values(payload, keys), strict=True))
         return {"research": figure, "selector": selector, "manuscript": _atlas_comparison_result(study, selector)}
-    if figure == INTEGRAL_STUDY:
+    if figure in (INTEGRAL_STUDY, CUBIC_STUDY):
         (record_id,) = _study_values(payload, ("record_id",))
         return {"research": figure, "record_id": record_id, "manuscript": _integral_record(study, record_id)}
     a, b = _study_values(payload, ("a", "b"))
@@ -434,6 +535,9 @@ def recompute_study(payload):
         record = get_catalog().record(record_id)
         result = integral_invariants(record, _cicy3_source_rows()[record_id - 1])
         source = "Exact ambient cubic and second Chern content with Riemann–Roch checks."
+    elif figure == CUBIC_STUDY:
+        result = cubic_signature(payload["record_id"])
+        source = "Exact cubic signature from the archived configuration and ambient integral divisor lattice."
     else:
         raise ValueError("Unknown manuscript study.")
     return {

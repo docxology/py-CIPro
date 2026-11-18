@@ -20,6 +20,7 @@ Wolfram kernel.
 | [`data/bicubic-exact.json`](../data/bicubic-exact.json) | Equation coefficients, smoothness minors, and rational map ranks with exact cohomology in the finite charge grid |
 | [`data/integral-invariants.json`](../data/integral-invariants.json) | Record-level divisibilities of the cubic form and Chern functional on the ambient divisor lattice, grouped by Hodge numbers |
 | [`data/cubic-refinement.json`](../data/cubic-refinement.json) | Repeated and diagonal cubic divisibility across the same archive, with matched record witnesses |
+| [`data/index-divisibility.json`](../data/index-divisibility.json) | Fixed divisors of the ambient line-bundle index, signed evaluation checks, and record-level results |
 | [`manuscript/references.bib`](../manuscript/references.bib) | Primary geometry, software, and dataset citations |
 
 Numbered definitions, propositions, lemmas, corollaries, examples,
@@ -79,7 +80,9 @@ mkdir -p output/replay/data
   --figure output/replay/figures/integral-invariants.png
 "$renderer_python" scripts/cubic_refinement.py --reference output/replay/data/integral-invariants.json \
   --output output/replay/data/cubic-refinement.json
-for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact integral-invariants cubic-refinement; do
+"$renderer_python" scripts/index_divisibility.py --reference output/replay/data/cubic-refinement.json \
+  --output output/replay/data/index-divisibility.json
+for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact integral-invariants cubic-refinement index-divisibility; do
   diff -u "data/$name.json" "output/replay/data/$name.json" || exit 1
 done
 "$renderer_python" scripts/render_graphical_abstract.py --data-dir output/replay/data \
@@ -134,12 +137,12 @@ directory. Generate `SHA256SUMS` in that directory with relative paths.
 - `pdf/py-CIPro-manuscript.pdf` contains the template's combined PDF.
 - `cover/` contains the rendered `graphical-abstract.pdf` and `graphical-abstract.png`.
 - `figures/` contains all eight named PDF exports and `figure_registry.json`.
-- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, `integral-invariants.json`, and the renderer's `software_and_analysis.json`.
+- `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, `integral-invariants.json`, `cubic-refinement.json`, and the renderer's `software_and_analysis.json`.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
 
-The release also includes `cubic-refinement.json` as supplemental research
-data. It traces to the same integral audit and records the two additional
-divisibility invariants, their refinement counts, and matched witnesses.
+The Figure 6 controls and the four-panel graphical abstract use the cubic
+refinement receipt. The separate fixed-divisor receipt
+`index-divisibility.json` binds those rows to the exact line-bundle index.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT
 --title TITLE --pages PAGES` from the project checkout. Use the full

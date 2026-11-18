@@ -25,6 +25,10 @@ Python is the dashboard default. Recalculate `CIDim`, `CY`, and `Euler` for an a
 
 The **Manuscript** view includes a graphical abstract, eight interactive figures, and source-record links. In the integral-lattice figure, select a cubic and second Chern gcd pair and rerun a record's exact calculation in Python. The PDF includes a notation table and a methods concordance. [Manuscript build](docs/manuscript.md)
 
+The **Cubic refinement** panel breaks the selected cell into four-part
+signatures. Native `cubic_signature` and `ambient_index_divisor` calls also
+recompute individual records for research notebooks. [Python examples](docs/python/api.md#recompute-cubic-and-index-divisibility) · [Archive studies](docs/research.md#recompute-the-ambient-divisibility-studies)
+
 ## Use
 
 ```python

@@ -21,6 +21,7 @@ class ManuscriptTests(unittest.TestCase):
             import chern_audit
             import cubic_refinement
             import integral_invariants
+            import index_divisibility
             import manuscript_analysis
             import manuscript_variables
 
@@ -30,6 +31,7 @@ class ManuscriptTests(unittest.TestCase):
         cls.chern = chern_audit
         cls.refinement = cubic_refinement
         cls.integral = integral_invariants
+        cls.index_divisibility = index_divisibility
         cls.analysis = manuscript_analysis
         cls.variables = manuscript_variables
 
@@ -52,6 +54,7 @@ class ManuscriptTests(unittest.TestCase):
             ("bicubic-exact.json", self.bicubic.analysis(data / "manuscript-analysis.json")),
             ("integral-invariants.json", self.integral.compute_integral_invariants()),
             ("cubic-refinement.json", self.refinement.compute_cubic_refinement(data / "integral-invariants.json")),
+            ("index-divisibility.json", self.index_divisibility.compute_index_divisibility(data / "cubic-refinement.json")),
         ):
             with self.subTest(path=path):
                 expected = json.loads((data / path).read_text(encoding="utf-8"))

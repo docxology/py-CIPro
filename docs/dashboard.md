@@ -46,6 +46,13 @@ respectively. The interactive census uses the ambient divisor lattice
 of each presentation. The manuscript justifies the use of the full
 integral lattice for those two examples.
 
+**Cubic refinement** subdivides that cell into exact `(d1, d2, d3, dp)`
+signatures. Select a subgroup to open its archive IDs or choose one record
+and select **Rerun refinement in Python**. The repeated- and
+diagonal-evaluation witnesses open the corresponding Hodge group and cell.
+A copied figure link restores the subgroup and selected record along with
+the existing census scope.
+
 In the cohomology figure, choose a charge and run the Python calculation to
 compare a fresh `CohLBS` dimension vector and `IndLBS` index with the
 manuscript values. The plotted domain spans quintic degrees −10 through 10
@@ -124,12 +131,14 @@ The dashboard constructs symbolic values from these tags and treats ordinary str
 | `GET /api/kernel` | Initial backend and selectable backends |
 | `GET /api/methods` | Released method catalog, native availability, dashboard eligibility, and executable examples |
 | `GET /api/research` | Figure data for the catalogue and original line-bundle study |
-| `GET /api/research/studies` | The three additional manuscript studies |
+| `GET /api/research/studies` | Four figure-linked study receipts and the cubic refinement |
 | `GET /api/research/provenance` | Manuscript identity, archive and asset digests, and caption metadata |
 | `GET /api/research/records?figure=atlas&h11=1&h21=101` | Exact archive IDs represented by a figure selection |
 | `POST /api/research/rerun` | Fresh Python calculation for a plotted study input |
 | `GET /research/manuscript.pdf` | Packaged manuscript PDF |
 | `GET /research/chern-audit.json` | Exact standalone data for a supplementary study |
+| `GET /research/cubic-refinement.json` | Record-level four-part cubic signature data |
+| `GET /api/research/records?figure=cubic-refinement&d1=1&d2=2&d3=2&dp=4&h11=5&h21=53` | Exact subgroup IDs within a Hodge pair. An Euler filter is also available. |
 | `POST /api/compute` | Selected `CIDim`, `CY`, and `Euler` properties for one archived record |
 | `POST /api/run` | One eligible named method with explicit arguments and options |
 

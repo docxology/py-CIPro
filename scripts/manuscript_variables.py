@@ -75,6 +75,7 @@ def analysis_records(root, catalog):
         "bicubic_exact": "data/bicubic-exact.json",
         "integral_invariants": "data/integral-invariants.json",
         "cubic_refinement": "data/cubic-refinement.json",
+        "index_divisibility": "data/index-divisibility.json",
     }
     records = {name: load_json(root / path) for name, path in paths.items()}
     archive = records["archive"]
@@ -82,6 +83,7 @@ def analysis_records(root, catalog):
     figures = records["figure_analysis"]["catalog"]
     integral = records["integral_invariants"]["summary"]
     refinement = records["cubic_refinement"]["summary"]
+    index = records["index_divisibility"]["summary"]
     if (
         archive["archive_sha256"] != catalog.sha256
         or archive["dataset_sha256"] != catalog.member_sha256
@@ -97,7 +99,8 @@ def analysis_records(root, catalog):
         or any(
             records[name]["dataset_sha256"] != catalog.member_sha256
             or records[name]["archive_sha256"] != catalog.sha256
-            for name in ("chern_audit", "atlas_comparison", "bicubic_exact", "integral_invariants", "cubic_refinement")
+            for name in ("chern_audit", "atlas_comparison", "bicubic_exact", "integral_invariants",
+                         "cubic_refinement", "index_divisibility")
         )
         or records["bicubic_exact"]["native_receipt_sha256"]
         != sha256((root / paths["figure_analysis"]).read_bytes()).hexdigest()
@@ -107,6 +110,9 @@ def analysis_records(root, catalog):
         != (integral["records"], integral["hodge_groups"], integral["split_hodge_groups"])
         or records["cubic_refinement"]["integral_receipt_sha256"]
         != sha256((root / paths["integral_invariants"]).read_bytes()).hexdigest()
+        or records["index_divisibility"]["cubic_refinement_sha256"]
+        != sha256((root / paths["cubic_refinement"]).read_bytes()).hexdigest()
+        or (index["records"], index["signatures_before"]) != (integral["records"], refinement["joint_quadruples"])
     ):
         raise ValueError("Archive summary and exact checks must bind the current release and population")
     return records, paths
@@ -137,6 +143,11 @@ def add_revision_variables(variables, records):
     if any(not re.fullmatch(r"REFINEMENT_[A-Z0-9_]+", name) or name in variables for name in refinement):
         raise ValueError("Cubic refinement must use unique REFINEMENT_ tokens")
     variables.update(refinement)
+
+    index = records["index_divisibility"]["manuscript_values"]
+    if any(not re.fullmatch(r"INDEX_DIVISIBILITY_[A-Z0-9_]+", name) or name in variables for name in index):
+        raise ValueError("Index divisibility must use unique INDEX_DIVISIBILITY_ tokens")
+    variables.update(index)
 
     exact = records["bicubic_exact"]["summary"]
     if (exact["points"] != exact["native_index_matches"]
@@ -265,6 +276,7 @@ def workflow_rows(root, software):
         ("Exact bicubic cohomology", "scripts/bicubic_exact.py"),
         ("Integral divisor-lattice audit", "scripts/integral_invariants.py"),
         ("Repeated and diagonal cubic content", "scripts/cubic_refinement.py"),
+        ("Line-bundle index fixed divisor", "scripts/index_divisibility.py"),
         ("Cover graphical abstract", "scripts/render_graphical_abstract.py"),
         ("Manuscript hydration", "scripts/z_generate_manuscript_variables.py"),
     ):
@@ -348,6 +360,7 @@ def build_variables(root):
         "src/py_cipro/_research_atlas.py",
         "src/py_cipro/_research_bicubic.py",
         "src/py_cipro/_research_chern.py",
+        "src/py_cipro/_research_cubic.py",
         "src/py_cipro/_research_integral.py",
         "src/py_cipro/_research_integral.py",
         "src/py_cipro/_dashboard_examples.py",
@@ -359,6 +372,7 @@ def build_variables(root):
         "scripts/bicubic_exact.py",
         "scripts/integral_invariants.py",
         "scripts/cubic_refinement.py",
+        "scripts/index_divisibility.py",
         "scripts/manuscript_analysis.py",
         "scripts/manuscript_variables.py",
         "scripts/render_figures.py",

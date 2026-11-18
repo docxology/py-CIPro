@@ -47,6 +47,7 @@ STATIC = {
     "/research.js": ("research.js", "text/javascript"),
     "/research.css": ("research.css", "text/css"),
     "/integral-lattice.js": ("integral-lattice.js", "text/javascript"),
+    "/cubic-refinement.js": ("cubic-refinement.js", "text/javascript"),
 }
 RESEARCH_PDFS = {f"/research/{name}": name for name in PDF_NAMES}
 RESEARCH_DATA = {f"/research/{name}": name for name in STUDY_DATA}

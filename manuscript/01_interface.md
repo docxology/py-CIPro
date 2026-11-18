@@ -38,6 +38,7 @@ The notation in [@tbl:geometry_notation] follows the mathematical inputs. [@tbl:
 | $\rho_X$, $L_X$ | First Pontryagin evaluation on the full integral second cohomology. For $c_1(TX)=0$, $\rho_X=-2\lambda$ on the ambient lattice. See [@eq:integral_topological_data]. |
 | $L$, $S$, $(g_3,g_2)$ | Integral image of ambient classes, its saturation in the free second cohomology, and the cubic and second Chern content. See [@eq:integral_content_saturation]. |
 | $d_1,d_2,d_3,d_p$ | Contents of all cubic evaluations, repeated-argument evaluations, diagonal evaluations, and second Chern evaluations. Here $d_1=g_3$ and $d_p=g_2$. See [@eq:cubic_repeated_diagonal_content]. |
+| $d_\chi$ | Fixed divisor of the line-bundle index over the supplied integral lattice. See [@eq:ambient_index_fixed_divisor]. |
 | $\mathcal L$, $\ell$, $V$, $T$ | All-ones line bundle, its first Chern class, its cubic degree, and its second Chern pairing. See [@eq:polarized_pairings]. |
 | $L_{\mathbf{k}}$, $h^q$, $\chi(X,L_{\mathbf{k}})$ | Ambient line bundle restricted to $X$, its degree-$q$ cohomology dimension, and its index. In the API one charge vector is one column of `LBS`. See [@eq:line_index]. |
 | $M_{(a,b)}(F)$, $r_2$, $\delta(a,b)$ | Middle Koszul multiplication map at the bicubic charge, its rank, and the paired dimension excess over the generic member. See [@eq:bicubic_dimension_from_rank] and [@eq:bicubic_paired_excess]. |

@@ -14,13 +14,13 @@ matplotlib.use("Agg")
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.patches import FancyBboxPatch, Rectangle
+from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import FuncFormatter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants")
-FIGSIZE = (7.0, 3.8)
+STUDIES = ("chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants", "cubic-refinement")
+FIGSIZE = (7.0, 4.7)
 INK = "#172a3a"
 MUTED = "#486173"
 PALE = "#e0e8ed"
@@ -37,7 +37,10 @@ def load_studies(directory):
     }
     if len(archive_ids) != 1:
         raise ValueError("The cover studies must use the same archived CICY3 inputs.")
-    return studies, {name: sha256(data).hexdigest() for name, data in raw.items()}
+    digests = {name: sha256(data).hexdigest() for name, data in raw.items()}
+    if studies["cubic-refinement"]["integral_receipt_sha256"] != digests["integral-invariants"]:
+        raise ValueError("The cubic refinement must bind this integral-invariants receipt.")
+    return studies, digests
 
 
 def minus(number):
@@ -56,11 +59,11 @@ def text(fig, x, y, label, size, *, color=INK, weight="normal", **options):
     return fig.text(x, y, label, fontsize=size, color=color, weight=weight, **options)
 
 
-def panel(fig, x, accent, title, metric, description):
-    rounded_box(fig, x, .032, .31, .728, "#f8fafb", "#d9e3e9")
-    text(fig, x + .02, .719, title, 8.9, color=accent, weight="bold", va="center")
-    text(fig, x + .019, .632, metric, 18, weight="bold", va="center")
-    text(fig, x + .02, .532, description, 7.0, color=MUTED, va="center", linespacing=1.35)
+def panel(fig, x, y, accent, title, metric, description):
+    rounded_box(fig, x, y, .465, .35, "#f8fafb", "#d9e3e9")
+    text(fig, x + .021, y + .308, title, 9.0, color=accent, weight="bold", va="center")
+    text(fig, x + .021, y + .218, metric, 16.4, weight="bold", va="center")
+    text(fig, x + .022, y + .146, description, 7.2, color=MUTED, va="center", linespacing=1.36)
 
 
 def axes_style(ax):
@@ -76,7 +79,7 @@ def axes_style(ax):
     ax.yaxis.label.set_color(MUTED)
 
 
-def geometry(fig, x, data):
+def geometry(fig, x, y, data):
     summary = data["summary"]
     rows = data["rows"]
     if (len(rows) != summary["records"] or data["mismatches"]
@@ -88,10 +91,10 @@ def geometry(fig, x, data):
                      if not row["product"] and row["hodge"] == modal)
     if not points or len(points) != summary["modal_signatures"]:
         raise ValueError("The modal Hodge group does not match the Chern audit.")
-    panel(fig, x, TEAL, "Chern pairing audit", f"{summary['ambient_pairings']:,}",
-          f"Second Chern pairings recovered\nacross {summary['records']:,} configurations")
+    panel(fig, x, y, TEAL, "Chern pairing audit", f"{summary['ambient_pairings']:,}",
+          f"Second Chern pairings\non {summary['records']:,} archive records")
 
-    ax = fig.add_axes([x + .064, .232, .217, .216])
+    ax = fig.add_axes([x + .247, y + .097, .195, .168])
     axes_style(ax)
     cloud = sorted(points, key=points.get, reverse=True)
     volumes, pairings = zip(*cloud, strict=True)
@@ -102,17 +105,17 @@ def geometry(fig, x, data):
         ax.scatter(row["volume"], row["c2_polarized"], s=22, facecolor="#f8fafb",
                    edgecolor=ORANGE, linewidth=.95, zorder=4)
     ax.margins(x=.10, y=.16)
-    ax.set_xticks([500, 1000, 1500, 2000])
-    ax.set_yticks([150, 200, 250, 300])
+    ax.set_xticks([500, 1250, 2000])
+    ax.set_yticks([150, 225, 300])
     ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
     ax.set_xlabel("Polarized degree V", fontsize=6.1, labelpad=2)
-    ax.set_ylabel("Chern pairing T", fontsize=6.1, labelpad=2)
-    text(fig, x + .155, .087,
-         f"{len(points):,} distinct (V, T) at Hodge pair ({modal[0]}, {modal[1]})",
-         6.4, color=MUTED, ha="center", va="center")
+    text(fig, x + .247, y + .281, "Chern pairing T", 6.1, color=MUTED, va="center")
+    text(fig, x + .022, y + .032,
+         f"{len(points):,} distinct pairs at Hodge ({modal[0]}, {modal[1]})",
+         6.7, color=MUTED, va="center")
 
 
-def weighting(fig, x, data):
+def weighting(fig, x, y, data):
     medians = data["summary"]["median_euler"]
     population = data["population"]
     cdf = data["euler_cdf"]
@@ -120,11 +123,11 @@ def weighting(fig, x, data):
         ("presentation", "record_count_le", "non_product_presentations", TEAL, "-", "Per record"),
         ("equal_pair", "pair_count_le", "distinct_non_product_hodge_pairs", PURPLE, "--", "Per Hodge pair"),
     )
-    panel(fig, x, PURPLE, "Catalog weighting",
+    panel(fig, x, y, PURPLE, "Catalogue weighting",
           f"{minus(medians['presentation'])} → {minus(medians['equal_pair'])}",
-          "Median Euler characteristic\nunder two exact weighting rules")
+          "Median Euler\ncharacteristic by weight")
 
-    ax = fig.add_axes([x + .061, .232, .22, .216])
+    ax = fig.add_axes([x + .247, y + .097, .195, .168])
     axes_style(ax)
     threshold = [row["euler"] for row in cdf]
     ax.axhline(.5, color="#a8b4be", linewidth=.6, zorder=1)
@@ -144,17 +147,17 @@ def weighting(fig, x, data):
     ax.set_xticks([-200, -100, 0])
     ax.set_yticks([0, .5, 1], ["0%", "50%", "100%"])
     ax.set_xlabel("Euler characteristic χ", fontsize=6.1, labelpad=2)
-    ax.set_ylabel("Cumulative share", fontsize=6.1, labelpad=2)
+    text(fig, x + .247, y + .281, "Cumulative share", 6.1, color=MUTED, va="center")
     handles = [Line2D([], [], color=color, linestyle=style, label=label, linewidth=1.35)
                for _, _, _, color, style, label in groups]
-    legend = fig.legend(handles=handles, loc="center", bbox_to_anchor=(x + .156, .087),
+    legend = fig.legend(handles=handles, loc="center left", bbox_to_anchor=(x + .018, y + .033),
                         frameon=False, ncols=2, fontsize=6.3, handlelength=1.4,
                         columnspacing=1, handletextpad=.35)
     for label in legend.get_texts():
         label.set_color(MUTED)
 
 
-def bicubic(fig, x, data):
+def bicubic(fig, x, y, data):
     summary = data["summary"]
     low, high = data["charge_range_per_axis"]
     values = {(row["a"], row["b"]): row["paired_excess"] for row in data["rows"]}
@@ -162,11 +165,11 @@ def bicubic(fig, x, data):
     if (len(values) != summary["points"] or len(values) != len(grid) ** 2
             or sum(value > 0 for value in values.values()) != summary["jumping_points"]):
         raise ValueError("The cohomology grid does not match its summary.")
-    panel(fig, x, ORANGE, "Bicubic cohomology",
+    panel(fig, x, y, ORANGE, "Bicubic cohomology",
           f"{summary['jumping_points']:,} of {summary['points']:,}",
-          "Charge pairs with a jump on the\nspecified smooth bicubic")
+          "Charge pairs with a jump\non one smooth bicubic")
 
-    ax = fig.add_axes([x + .075, .226, .133, .244])
+    ax = fig.add_axes([x + .237, y + .099, .176, .170])
     axes_style(ax)
     ax.grid(False)
     excess = [[values[a, b] for a in grid] for b in grid]
@@ -185,62 +188,88 @@ def bicubic(fig, x, data):
     ax.set_yticks([low, 0, high])
     ax.set_xlabel("Charge a", fontsize=6.1, labelpad=2)
     ax.set_ylabel("Charge b", fontsize=6.1, labelpad=2)
-    cax = fig.add_axes([x + .218, .248, .012, .185])
+    cax = fig.add_axes([x + .404, y + .110, .015, .148])
     bar = fig.colorbar(image, cax=cax, ticks=[0, maximum])
     bar.solids.set_rasterized(False)
     bar.outline.set_visible(False)
     bar.ax.tick_params(length=0, pad=2, labelsize=5.8, colors=MUTED)
-    text(fig, x + .155, .087, "Excess dimension in each middle degree",
-         6.4, color=MUTED, ha="center", va="center")
+    text(fig, x + .022, y + .035, "Extra classes in H¹ and H²",
+         6.7, color=MUTED, va="center")
 
 
-def integral_split(fig, split, total):
-    rounded_box(fig, .02, .12, .96, .76, "#eef4f4", "#d2e0e1")
-    text(fig, .039, .5, f"{split:,} of {total:,}", 10.8, color=TEAL, weight="bold", va="center")
-    text(fig, .189, .5, "Non-product Hodge groups split by two ambient lattice gcd invariants",
-         7.55, color=INK, va="center")
-    for width, color in ((.14, "#ccdade"), (.14 * split / total, TEAL)):
-        fig.add_artist(Rectangle((.815, .40), width, .20, transform=fig.transSubfigure,
-                                 facecolor=color, edgecolor="none", zorder=1))
-
-
-def integral_totals(data, atlas, chern):
-    joint_by_hodge = defaultdict(set)
-    records = {}
+def integral_totals(data, refinement, atlas, chern):
+    pairs_by_hodge = defaultdict(set)
+    refined_by_hodge = defaultdict(set)
+    original = {}
     for row in data["rows"]:
         hodge = tuple(row["hodge"])
-        records[row["id"]] = hodge
-        joint_by_hodge[hodge].add((row["cubic_content"], row["chern_content"]))
+        pair = row["cubic_content"], row["chern_content"]
+        original[row["id"]] = hodge, pair
+        pairs_by_hodge[hodge].add(pair)
+    for row in refinement["rows"]:
+        hodge, pair = original[row["id"]]
+        signature = row["d1"], row["d2"], row["d3"], row["dp"]
+        if (signature[0], signature[3]) != pair:
+            raise ValueError("A refined signature has changed its original integral cell.")
+        refined_by_hodge[hodge].add(signature)
     non_product = {row["id"]: tuple(row["hodge"]) for row in chern["rows"] if not row["product"]}
     population = atlas["population"]
-    split = sum(len(joint) > 1 for joint in joint_by_hodge.values())
-    total = len(joint_by_hodge)
+    split = sum(len(joint) > 1 for joint in pairs_by_hodge.values())
+    refined = sum(len(joint) > 1 for joint in refined_by_hodge.values())
+    total = len(pairs_by_hodge)
+    pairs = len(set().union(*pairs_by_hodge.values()))
+    quadruples = len(set().union(*refined_by_hodge.values()))
     summary = data["summary"]
-    if (records != non_product or len(data["rows"]) != len(records)
-            or len(records) != summary["records"]
-            or len(records) != population["non_product_presentations"]
+    refinement_summary = refinement["summary"]
+    if ({key: hodge for key, (hodge, _) in original.items()} != non_product
+            or len(data["rows"]) != len(original)
+            or len(original) != summary["records"]
+            or len(original) != population["non_product_presentations"]
             or total != population["distinct_non_product_hodge_pairs"]
-            or (split, total) != (summary["split_hodge_groups"], summary["hodge_groups"])):
+            or (split, total) != (summary["split_hodge_groups"], summary["hodge_groups"])
+            or {row["id"] for row in refinement["rows"]} != original.keys()
+            or len(refinement["rows"]) != len(original)
+            or (pairs, quadruples, split, refined, total) != (
+                refinement_summary["joint_pairs"], refinement_summary["joint_quadruples"],
+                refinement_summary["split_by_pair"], refinement_summary["split_by_quadruple"],
+                refinement_summary["hodge_groups"],
+            )):
         raise ValueError("The integral-invariant audit does not match its reported non-product cohort.")
-    return split, total
+    return pairs, quadruples, split, refined, total
+
+
+def integral_panel(fig, x, y, counts):
+    pairs, quadruples, split, refined, total = counts
+    panel(fig, x, y, TEAL, "Integral cubic refinement",
+          f"{pairs:,} → {quadruples:,}", "Ambient signatures\nwith two added cubic gcds")
+    ax = fig.add_axes([x + .247, y + .103, .180, .151])
+    ax.set_xlim(0, total)
+    ax.set_ylim(-.5, 1.5)
+    ax.set_axis_off()
+    ax.barh([1, 0], [total, total], height=.34, color="#dfe8ed", linewidth=0)
+    ax.barh([1, 0], [split, refined], height=.34, color=["#587288", TEAL], linewidth=0)
+    for row, value, label in ((1, split, "Pair"), (0, refined, "Four")):
+        ax.text(3, row + .27, label, fontsize=6.8, color=MUTED, va="bottom")
+        ax.text(value + 5, row, f"{value}", fontsize=7.0, color=INK, va="center")
+    text(fig, x + .022, y + .045, f"Hodge groups split out of {total}", 6.7, color=MUTED, va="center")
 
 
 def render(studies, pdf, png):
     chern = studies["chern-audit"]
     atlas = studies["atlas-comparison"]
-    split, total = integral_totals(studies["integral-invariants"], atlas, chern)
+    counts = integral_totals(studies["integral-invariants"], studies["cubic-refinement"], atlas, chern)
     with matplotlib.rc_context({"font.family": "DejaVu Sans", "pdf.fonttype": 42}):
         fig = Figure(figsize=FIGSIZE, facecolor="white")
-        body, footer = fig.subfigures(2, 1, height_ratios=[3.50, .30], hspace=0)
-        rounded_box(body, .02, .794, .96, .188, INK)
-        text(body, .047, .915, "Exact studies of CICY threefolds", 16,
+        rounded_box(fig, .02, .825, .96, .158, INK)
+        text(fig, .045, .930, "Exact studies of CICY threefolds", 16.0,
              color="white", weight="bold", va="center")
-        text(body, .048, .835, "Archived configurations, catalog weights, and a specified smooth bicubic",
-             7.4, color="#cfdee8", va="center")
-        geometry(body, .02, chern)
-        weighting(body, .345, atlas)
-        bicubic(body, .67, studies["bicubic-exact"])
-        integral_split(footer, split, total)
+        text(fig, .046, .867, "Configurations, catalogue weights, cohomology, and integral divisor lattices",
+             7.8, color="#cfdee8", va="center")
+        geometry(fig, .02, .454, chern)
+        weighting(fig, .515, .454, atlas)
+        bicubic(fig, .02, .077, studies["bicubic-exact"])
+        integral_panel(fig, .515, .077, counts)
+        text(fig, .022, .035, "CIPro v1.0 archive · Exact native Python calculations", 7.2, color=MUTED, va="center")
         pdf.parent.mkdir(parents=True, exist_ok=True)
         png.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(pdf, format="pdf", metadata={

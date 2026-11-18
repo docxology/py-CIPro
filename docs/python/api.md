@@ -92,6 +92,28 @@ with CIPro(backend="python") as ci:
     assert ci.Data("Cicy3", (7889, 7890), ("Num", "Euler")) == ((7889, -176), (7890, -200))
 ```
 
+## Recompute cubic and index divisibility
+
+`cubic_signature(record_id)` and `ambient_index_divisor(record_id)` are
+native research functions for the non-product records in the pinned CIPro
+v1.0 textual archive. Each call constructs the ambient intersection data
+from the archived degree matrix. The IDs are one-based. Invalid IDs and
+product records raise `ValueError`.
+
+```python
+from py_cipro import ambient_index_divisor, cubic_signature
+
+assert cubic_signature(7741) == {"id": 7741, "d1": 1, "d2": 2, "d3": 2, "dp": 4}
+assert ambient_index_divisor(7626) == 2
+assert ambient_index_divisor(7635) == 1
+```
+
+The signature gives the gcds of all cubic evaluations, repeated cubic
+evaluations, diagonal cubic evaluations, and second Chern evaluations.
+The fixed divisor is the gcd of all line-bundle indices on the same
+lattice. For example, every ambient line-bundle index on record 7626 is
+even. [Mathematical definitions and archive comparison](../research.md#recompute-the-ambient-divisibility-studies)
+
 ## Using the original Wolfram kernel from Python
 
 ```python

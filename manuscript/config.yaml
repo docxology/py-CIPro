@@ -3,7 +3,7 @@ paper:
   date: "2026-11-17"
   cover:
     image: "cover/graphical-abstract.pdf"
-    alt: "Graphical abstract showing the second Chern audit, Euler medians under two catalogue weights, cohomology jumps on a specified smooth bicubic, and the Hodge groups distinguished by ambient lattice divisibility."
+    alt: "Four panels show the second Chern pairing audit, Euler medians under two catalogue weights, cohomology jumps on one smooth bicubic, and the increase in ambient signatures and split Hodge groups after adding repeated and diagonal cubic divisibility."
 authors:
   - name: "Daniel Friedman"
     orcid: "0000-0001-6232-9096"

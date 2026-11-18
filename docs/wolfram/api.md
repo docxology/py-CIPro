@@ -75,6 +75,16 @@ Options[CIProp]
 CIProp["Euler"]
 ```
 
+## Inputs for the ambient divisibility analyses
+
+Use `CIProp[g, {"ISec", "C"}]` with a fresh geometry association containing
+`DimPs` and `Conf` to obtain the intersection tensor and Chern data.
+The cubic signature applies integer gcds to tensor evaluations and
+the ordered second Chern pairings. Use `IndLBS` with ambient charges
+in `LBS` to check individual values of the line-bundle index.
+The manuscript gives the finite generators for the gcd of the whole
+index polynomial. [Research guide](../research.md#recompute-the-ambient-divisibility-studies)
+
 ## Dataset calls
 
 | Call | Interpretation |

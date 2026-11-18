@@ -12,7 +12,7 @@ from time import monotonic
 import unittest
 from unittest.mock import patch
 
-from py_cipro import CIPro, Evaluation, wl
+from py_cipro import CIPro, Evaluation, ambient_index_divisor, cubic_signature, wl
 from py_cipro._dashboard_research import recompute_study
 from py_cipro.dashboard import DashboardServer, MAX_COMPUTE_BODY, MAX_LAB_BODY, NATIVE_TIMEOUT
 
@@ -104,9 +104,10 @@ class DashboardTests(unittest.TestCase):
             "chern-audit", "cicy3-atlas", "cicy3-structure", "cicy3-multiplicity",
             "atlas-comparison", "line-bundle-cohomology", "bicubic-exact", "integral-invariants",
         })
-        self.assertEqual(len(provenance["assets_sha256"]), 16)
+        self.assertEqual(len(provenance["assets_sha256"]), 17)
         self.assertIn("graphical-abstract.pdf", provenance["assets_sha256"])
         self.assertIn("graphical-abstract.png", provenance["assets_sha256"])
+        self.assertIn("cubic-refinement.json", provenance["assets_sha256"])
         for name, digest in provenance["assets_sha256"].items():
             route = "/api/research" if name == "manuscript-analysis.json" else f"/research/{name}"
             with self.subTest(route=route):
@@ -129,7 +130,9 @@ class DashboardTests(unittest.TestCase):
         status, _, body = self.request("GET", "/api/research/studies")
         self.assertEqual(status, 200)
         studies = json.loads(body)
-        self.assertEqual(set(studies), {"chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants"})
+        self.assertEqual(set(studies), {
+            "chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants", "cubic-refinement",
+        })
         for name, study in studies.items():
             status, _, body = self.request("GET", f"/research/{name}.json")
             self.assertEqual(status, 200)
@@ -283,6 +286,79 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(result["result"]["chern_content"], 54)
         self.assertEqual(result["manuscript"], reference)
         self.assertFalse(result["matches_manuscript"])
+
+    def test_cubic_refinement_drilldown_preserves_the_selected_scope(self):
+        route = "/api/research/records?figure=cubic-refinement"
+        signature = "&d1=1&d2=2&d3=2&dp=4"
+        cases = (
+            (signature, 1408, None),
+            (signature + "&h11=5&h21=53", 3, [7701, 7705, 7741]),
+            (signature + "&euler=-96", 14, None),
+            ("&record_id=6232", 1, [6232]),
+            ("&d1=2&d2=2&d3=4&dp=4&h11=4&h21=32", 1, [6232]),
+        )
+        for query, count, expected in cases:
+            with self.subTest(query=query):
+                status, _, body = self.request("GET", route + query)
+                self.assertEqual(status, 200, body)
+                response = json.loads(body)
+                self.assertEqual(response["matched"], count)
+                if expected is not None:
+                    self.assertEqual(response["ids"], expected)
+                if query.endswith("&euler=-96"):
+                    self.assertTrue(all(self.server.catalog.record(number).euler == -96 for number in response["ids"]))
+        for query in (
+            "&d1=1&d2=2&d3=2",
+            signature + "&h11=5",
+            signature + "&h11=5&h21=53&euler=-96",
+            signature + "&dp=4",
+            signature + "&record_id=7741",
+            "&d1=1&d2=2&d3=2&dp=-4",
+        ):
+            self.assertEqual(self.request("GET", route + query)[0], 400)
+
+    def test_cubic_signature_and_python_worker_match_both_witness_pairs(self):
+        route = "/api/research/rerun"
+        witnesses = {
+            7702: (1, 1, 2, 4),
+            7741: (1, 2, 2, 4),
+            6177: (2, 2, 2, 4),
+            6232: (2, 2, 4, 4),
+        }
+        with patch.object(self.server.kernel, "call_result") as wolfram:
+            for number, (d1, d2, d3, dp) in witnesses.items():
+                with self.subTest(record_id=number):
+                    expected = {"id": number, "d1": d1, "d2": d2, "d3": d3, "dp": dp}
+                    self.assertEqual(cubic_signature(number), expected)
+                    status, _, body = self.post({"figure": "cubic-refinement", "record_id": number}, route,
+                                                Origin=self.origin)
+                    self.assertEqual(status, 200, body)
+                    response = json.loads(body)
+                    self.assertEqual(response["record_id"], number)
+                    self.assertEqual(response["backend"], "python")
+                    self.assertEqual(response["result"], expected)
+                    self.assertEqual(response["manuscript"], expected)
+                    self.assertTrue(response["matches_manuscript"])
+            wolfram.assert_not_called()
+        product = next(record.id for record in self.server.catalog.records if record.product)
+        for invalid in (True, 0, 7891, "7702", 7702.0, product):
+            with self.subTest(record_id=invalid), self.assertRaises(ValueError):
+                cubic_signature(invalid)
+            self.assertEqual(self.post({"figure": "cubic-refinement", "record_id": invalid}, route)[0], 400)
+
+        stale = {"id": 7741, "d1": 1, "d2": 1, "d3": 2, "dp": 4}
+        replay = recompute_study({"research": "cubic-refinement", "record_id": 7741, "manuscript": stale})
+        self.assertEqual(replay["result"]["d2"], 2)
+        self.assertFalse(replay["matches_manuscript"])
+
+    def test_public_ambient_index_divisor_recomputes_both_matched_records(self):
+        self.assertEqual(ambient_index_divisor(7626), 2)
+        self.assertEqual(ambient_index_divisor(7635), 1)
+        self.assertEqual(cubic_signature(7626)["d3"], cubic_signature(7635)["d3"])
+        product = next(record.id for record in self.server.catalog.records if record.product)
+        for invalid in (False, 0, "7626", product):
+            with self.subTest(record_id=invalid), self.assertRaises(ValueError):
+                ambient_index_divisor(invalid)
 
     def test_research_mark_selection_returns_exact_archive_ids(self):
         records = self.server.catalog.records

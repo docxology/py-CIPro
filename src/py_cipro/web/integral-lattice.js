@@ -1,3 +1,5 @@
+import { mountCubicRefinement } from "./cubic-refinement.js";
+
 const key = row => `${row.cubic_content},${row.chern_content}`;
 const superscripts = { 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
 const superscript = value => String(value).replace(/\d/g, digit => superscripts[digit]);
@@ -108,6 +110,7 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
   let selectedCells = data.joint;
   let selectedCell = null;
   let selectedRecord = null;
+  let refinementView;
   let clearResult;
   let clearCohortStatus;
   let clearRecordStatus;
@@ -180,6 +183,12 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
       mark.setAttribute("aria-pressed", String(selected));
     }
     showRecord(preferredId);
+    let context = {};
+    if (scope.select.value === "hodge") {
+      const [h11, h21] = hodge.select.value.split(",").map(Number);
+      context = { h11, h21 };
+    } else if (scope.select.value === "euler") context = { euler: Number(euler.select.value) };
+    refinementView?.updateCell(selectedCell, context, selectedRecord.id);
   }
 
   function redraw(preferredKey = key(selectedCell || witness[0]), preferredId = selectedRecord?.id) {
@@ -260,6 +269,7 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
     const state = new URLSearchParams({ scope: scope.select.value, cell: key(selectedCell), record: String(selectedRecord.id) });
     if (scope.select.value === "hodge") state.set("group", hodge.select.value);
     else if (scope.select.value === "euler") state.set("group", euler.select.value);
+    for (const [name, value] of Object.entries(refinementView?.shareState() || {})) state.set(name, value);
     const url = new URL(location.href);
     url.searchParams.set("lattice", String(state));
     url.hash = "research-integral-invariants";
@@ -278,6 +288,10 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
   shareActions.append(share);
   census.details.append(shareActions, shareStatus, shareFallback);
 
+  refinementView = mountCubicRefinement(figure, ui.refinement, data, openRecords, source => {
+    setPreset("hodge", source.hodge.join(","), { id: source.id, cubic_content: source.d1, chern_content: source.dp });
+  }, { ...ui, onChange: () => { shareStatus.textContent = ""; shareFallback.hidden = true; } });
+
   scope.select.addEventListener("change", () => redraw());
   hodge.select.addEventListener("change", () => redraw());
   euler.select.addEventListener("change", () => redraw());
@@ -294,6 +308,7 @@ export function renderIntegralLattice(root, data, openRecords, ui) {
     if (scope.select.value === "hodge" && hodgeGroups.has(state.get("group"))) hodge.select.value = state.get("group");
     if (scope.select.value === "euler" && eulerGroups.has(state.get("group"))) euler.select.value = state.get("group");
     redraw(state.get("cell") || key(witness[0]), Number(state.get("record") || witness[0].id));
+    refinementView?.restore(state);
   }
   window.addEventListener("popstate", restore);
   restore();

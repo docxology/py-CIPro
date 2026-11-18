@@ -173,8 +173,8 @@ function choices(panel, chart, rows, { id, label, value, option, initial, summar
   return { choose, current: () => selectedRows.get(select.value), initialize: () => choose(String(initial)) };
 }
 
-function recordAction(panel, select, lookup, openRecords, singular = false) {
-  const button = node("button", singular ? "Open source record" : "Open source records", "text-button");
+function recordAction(panel, select, lookup, openRecords, singular = false, buttonLabel) {
+  const button = node("button", buttonLabel || (singular ? "Open source record" : "Open source records"), "text-button");
   button.type = "button";
   const status = node("p", "", "research-status");
   status.setAttribute("role", "status");
@@ -475,8 +475,8 @@ function bundleValues(dimensions, index) {
   return `${values} · index χ = ${count.format(index)}`;
 }
 
-function runAction(panel, selection, payloadFor, describe = run => [bundleValues(run.dimensions, run.index)]) {
-  const button = node("button", "Rerun in Python", "button run-button");
+function runAction(panel, selection, payloadFor, describe = run => [bundleValues(run.dimensions, run.index)], buttonLabel = "Rerun in Python") {
+  const button = node("button", buttonLabel, "button run-button");
   button.type = "button";
   const actions = node("div", "", "research-actions");
   const result = node("div", "", "research-run-result");
@@ -989,9 +989,10 @@ function bicubicExact(root, data, openRecords) {
   bicubicDiagonalPanel(figure, data, openRecords);
 }
 
-function integralInvariants(root, data, openRecords) {
+function integralInvariants(root, data, openRecords, studies) {
   renderIntegralLattice(root, data, openRecords, {
     section, panel, field, node, svgNode, runAction, recordAction, count,
+    refinement: studies["cubic-refinement"],
   });
 }
 
@@ -1085,7 +1086,7 @@ export async function initializeResearch({ openRecords }) {
   try {
     const [data, studies] = await Promise.all([request("/api/research"), request("/api/research/studies")]);
     const rendered = document.createDocumentFragment();
-    for (const [, , render, study] of figures) render(rendered, study ? studies[study] : data, openRecords);
+    for (const [, , render, study] of figures) render(rendered, study ? studies[study] : data, openRecords, studies);
     root.append(rendered);
     status.remove();
     await provenance;

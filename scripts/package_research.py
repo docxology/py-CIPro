@@ -8,7 +8,7 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STUDY_IDS = ("chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants")
+STUDY_IDS = ("chern-audit", "atlas-comparison", "bicubic-exact", "integral-invariants", "cubic-refinement")
 FIGURE_IDS = (
     "chern-audit", "cicy3-atlas", "cicy3-multiplicity", "cicy3-structure",
     "atlas-comparison", "integral-invariants", "line-bundle-cohomology", "bicubic-exact",
