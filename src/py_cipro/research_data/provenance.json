@@ -3,13 +3,13 @@
   "manuscript_title": "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds",
   "manuscript_author": "Daniel Friedman",
   "manuscript_pages": 28,
-  "source_commit": "e5e08607b74a6eaf974292a788fc7dad6eb5bd13",
+  "source_commit": "643a4cb37f6a8f2d6f159ed6829b86b745dc3c82",
   "template_version": "5.0.2",
   "template_commit": "9bebe79195b8f6be4a3da02838fcd296b3012a56",
   "archive_sha256": "39223db768893c958be776071bcbf86d0ef5692f92e1ab153ef1ce8d3440dd53",
   "dataset_sha256": "e6e61888281efc7bf4d0d1bd76b62c18c764f1028f17924b9ffe8edce9d6ec17",
   "assets_sha256": {
-    "manuscript.pdf": "19656e7475f62d87757798dc8e6d51e384729560c47ef1d6e98dce72edf503dc",
+    "manuscript.pdf": "e11c8d34dfdec4758d37cde143290055227dc04a59deb1dac3964e263e193065",
     "graphical-abstract.pdf": "cb9fdb4acfe93d96258f422821a772c8be5b4e264a2fd271b7d7ee0bdb450257",
     "graphical-abstract.png": "1852e95532d9bf30d876e1fc3d79a5660ded1bdeacc37b073e5517cba242b24b",
     "manuscript-analysis.json": "1b31f593cfba088a85ff9179967d0b16bf61b05cbc8863e9f3909508811e8d1f",
@@ -69,5 +69,8 @@
       "caption": "Paired cohomology jumps on the smooth bicubic of [@def:sparse_bicubic]. Panel A maps the excess in each of $H^1$ and $H^2$ over the generic dimensions from [@eq:bicubic_paired_excess]. The nonlinear color scale is inverse-hyperbolic-sine, with its ticks in dimension units. The dashed line is the zero-index slice $b=-a$, and the ring marks the rank witness in [@thm:bicubic_jump]. Panel B shows the two signed middle-degree contributions to the index along the positive-$a$ half of the slice. On this slice $h^0=h^3=0$, so the two bars cancel at every charge.",
       "alt_text": "Exact bicubic cohomology in a specified smooth member and its excess over the generic formula."
     }
+  },
+  "publication": {
+    "github_release": "https://github.com/docxology/py-CIPro/releases/tag/v0.9.1"
   }
 }
