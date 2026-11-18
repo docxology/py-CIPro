@@ -74,11 +74,14 @@ def analysis_records(root, catalog):
         "atlas_comparison": "data/atlas-comparison.json",
         "bicubic_exact": "data/bicubic-exact.json",
         "integral_invariants": "data/integral-invariants.json",
+        "cubic_refinement": "data/cubic-refinement.json",
     }
     records = {name: load_json(root / path) for name, path in paths.items()}
     archive = records["archive"]
     checks = records["analytic_checks"]
     figures = records["figure_analysis"]["catalog"]
+    integral = records["integral_invariants"]["summary"]
+    refinement = records["cubic_refinement"]["summary"]
     if (
         archive["archive_sha256"] != catalog.sha256
         or archive["dataset_sha256"] != catalog.member_sha256
@@ -94,14 +97,16 @@ def analysis_records(root, catalog):
         or any(
             records[name]["dataset_sha256"] != catalog.member_sha256
             or records[name]["archive_sha256"] != catalog.sha256
-            for name in ("chern_audit", "atlas_comparison", "bicubic_exact", "integral_invariants")
+            for name in ("chern_audit", "atlas_comparison", "bicubic_exact", "integral_invariants", "cubic_refinement")
         )
         or records["bicubic_exact"]["native_receipt_sha256"]
         != sha256((root / paths["figure_analysis"]).read_bytes()).hexdigest()
-        or records["integral_invariants"]["summary"]["records"]
-        != len(catalog.records) - archive["product_count"]
-        or records["integral_invariants"]["summary"]["hodge_groups"]
-        != archive["non_product_hodge_pair_count"]
+        or integral["records"] != len(catalog.records) - archive["product_count"]
+        or integral["hodge_groups"] != archive["non_product_hodge_pair_count"]
+        or (refinement["records"], refinement["hodge_groups"], refinement["split_by_pair"])
+        != (integral["records"], integral["hodge_groups"], integral["split_hodge_groups"])
+        or records["cubic_refinement"]["integral_receipt_sha256"]
+        != sha256((root / paths["integral_invariants"]).read_bytes()).hexdigest()
     ):
         raise ValueError("Archive summary and exact checks must bind the current release and population")
     return records, paths
@@ -127,6 +132,11 @@ def add_revision_variables(variables, records):
     if any(not re.fullmatch(r"INTEGRAL_[A-Z0-9_]+", name) or name in variables for name in integral):
         raise ValueError("Integral invariants must use unique INTEGRAL_ tokens")
     variables.update(integral)
+
+    refinement = records["cubic_refinement"]["manuscript_values"]
+    if any(not re.fullmatch(r"REFINEMENT_[A-Z0-9_]+", name) or name in variables for name in refinement):
+        raise ValueError("Cubic refinement must use unique REFINEMENT_ tokens")
+    variables.update(refinement)
 
     exact = records["bicubic_exact"]["summary"]
     if (exact["points"] != exact["native_index_matches"]
@@ -254,6 +264,7 @@ def workflow_rows(root, software):
         ("Archive weighting comparisons", "scripts/atlas_comparison.py"),
         ("Exact bicubic cohomology", "scripts/bicubic_exact.py"),
         ("Integral divisor-lattice audit", "scripts/integral_invariants.py"),
+        ("Repeated and diagonal cubic content", "scripts/cubic_refinement.py"),
         ("Cover graphical abstract", "scripts/render_graphical_abstract.py"),
         ("Manuscript hydration", "scripts/z_generate_manuscript_variables.py"),
     ):
@@ -347,6 +358,7 @@ def build_variables(root):
         "scripts/atlas_comparison.py",
         "scripts/bicubic_exact.py",
         "scripts/integral_invariants.py",
+        "scripts/cubic_refinement.py",
         "scripts/manuscript_analysis.py",
         "scripts/manuscript_variables.py",
         "scripts/render_figures.py",

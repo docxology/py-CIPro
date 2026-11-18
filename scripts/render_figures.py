@@ -166,6 +166,7 @@ def plot_atlas(path: Path, analysis=None) -> None:
         left = hodge.get_position().x0
         scale = fig.add_axes([left + width * 0.08, 0.105, width * 0.84, 0.022])
         colorbar = fig.colorbar(points, cax=scale, orientation="horizontal")
+        colorbar.solids.set_rasterized(False)
         colorbar.set_ticks([1, 4, 16, 64, 256], labels=["1", "4", "16", "64", "256"])
         colorbar.minorticks_off()
         colorbar.set_label("Records per pair (log scale)", fontsize=8)
@@ -215,10 +216,10 @@ def plot_structure(path: Path, analysis) -> None:
 
     with canvas("Configuration size and archive favourability", height=4.45, bottom=0.235,
                 spacing=0.34) as (fig, (shape, favour)):
-        heatmap = shape.imshow(
-            np.ma.masked_equal(matrix, 0), origin="lower", aspect="auto",
-            extent=(0.5, factors + 0.5, 0.5, codimensions + 0.5),
-            cmap="Blues", norm=LogNorm(vmin=1, vmax=matrix.max()), interpolation="nearest",
+        heatmap = shape.pcolormesh(
+            np.arange(factors + 1) + .5, np.arange(codimensions + 1) + .5,
+            np.ma.masked_equal(matrix, 0), shading="flat",
+            cmap="Blues", norm=LogNorm(vmin=1, vmax=matrix.max()),
         )
         shape.set_facecolor("#eff3f6")
         shape.set(
@@ -233,6 +234,7 @@ def plot_structure(path: Path, analysis) -> None:
         left = shape.get_position().x0
         scale = fig.add_axes([left + width * 0.07, 0.102, width * 0.86, 0.022])
         colorbar = fig.colorbar(heatmap, cax=scale, orientation="horizontal")
+        colorbar.solids.set_rasterized(False)
         colorbar.set_ticks([1, 5, 25, 125, 500], labels=["1", "5", "25", "125", "500"])
         colorbar.minorticks_off()
         colorbar.set_label("Records per cell (log scale)", fontsize=8)

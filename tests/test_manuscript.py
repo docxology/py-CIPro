@@ -19,6 +19,7 @@ class ManuscriptTests(unittest.TestCase):
             import atlas_comparison
             import bicubic_exact
             import chern_audit
+            import cubic_refinement
             import integral_invariants
             import manuscript_analysis
             import manuscript_variables
@@ -27,6 +28,7 @@ class ManuscriptTests(unittest.TestCase):
         cls.atlas = atlas_comparison
         cls.bicubic = bicubic_exact
         cls.chern = chern_audit
+        cls.refinement = cubic_refinement
         cls.integral = integral_invariants
         cls.analysis = manuscript_analysis
         cls.variables = manuscript_variables
@@ -49,6 +51,7 @@ class ManuscriptTests(unittest.TestCase):
             ("atlas-comparison.json", self.atlas.atlas_comparison(catalog)),
             ("bicubic-exact.json", self.bicubic.analysis(data / "manuscript-analysis.json")),
             ("integral-invariants.json", self.integral.compute_integral_invariants()),
+            ("cubic-refinement.json", self.refinement.compute_cubic_refinement(data / "integral-invariants.json")),
         ):
             with self.subTest(path=path):
                 expected = json.loads((data / path).read_text(encoding="utf-8"))

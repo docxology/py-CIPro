@@ -114,6 +114,7 @@ def plot(payload, output):
             bounds = plot.get_position()
             bar = figure.colorbar(artist, cax=figure.add_axes([bounds.x0, .099, bounds.width, .018]),
                                   orientation="horizontal", ticks=ticks, format=StrMethodFormatter("{x:g}"))
+            bar.solids.set_rasterized(False)
             bar.minorticks_off()
             bar.set_label(legend, labelpad=3, fontsize=8.5)
             bar.ax.tick_params(labelsize=8, length=2)

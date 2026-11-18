@@ -1,6 +1,6 @@
 # Integral content of cubic and Chern pairings {#sec:integral_invariants}
 
-The intersection form and the second Chern functional in [@prop:integral_topological_comparison] contain more information than the Hodge pair. He and Candelas compared these forms for complete-intersection threefolds, and He, Yao, and Yau use divisibility invariants of the intersection data in comparisons of Calabi–Yau topology. The census below computes two greatest common divisors on the integral lattice supplied by each CIPro configuration. [@he-candelas-count; @he-yao-yau-topology; @cipro-release]
+The intersection form and the second Chern functional in [@prop:integral_topological_comparison] contain more information than the Hodge pair. He and Candelas compared these forms for complete-intersection threefolds. He, Yao, and Yau use four divisibility invariants to compare intersection data. The census evaluates these invariants on the integral image supplied by each CIPro configuration, with [@fig:integral_invariants] displaying the joint distribution of tensor and Chern content. [@he-candelas-count; @he-yao-yau-topology; @cipro-release]
 
 ::: {.definition #def:integral_content title="Content of the ambient cubic and Chern functional"}
 Let $L$ be the image of $H^2(A,\mathbb{Z})$ in $H^2(X,\mathbb{Z})/\mathrm{torsion}$, with generators the restrictions of the ambient hyperplane classes $H_i$. For the symmetric trilinear cup product $\mu(x,y,z)=\int_X xyz$ and linear functional $\lambda(x)=\int_X c_2(TX)x$, define $g_3$ and $g_2$ as the nonnegative generators of the ideals
@@ -70,6 +70,29 @@ Of {{INTEGRAL_HODGE_GROUPS}} distinct Hodge groups, {{INTEGRAL_HODGE_SPLIT}} con
 In the dashboard's **Manuscript** view, open **Integral lattice divisibility** and select a census scope. A Hodge pair or Euler characteristic restricts the population, and an occupied cell selects the exact $(g_3,g_2)$ cohort. **Open source records** opens that cohort in the archive. Select a record by ID to inspect its dimensions, degree matrix, and ordered second Chern pairings. **Rerun in Python** rebuilds the content values and congruence checks for that record from its configuration. The shared figure link retains the scope, cell, and record for replay.
 
 Use **Compare the rank-one witnesses** to select their common Hodge group, then choose each archive ID in the comparison panel. Each record reruns on its own defining degrees. The calculation verifies the integer contractions and the link to each archive ID. The weak Lefschetz argument in [@thm:integral_content_witness] identifies those particular ambient generators with the full integral lattices.
+
+## Repeated and diagonal evaluations of the cubic form
+
+::: {.proposition #prop:cubic_repeated_diagonal_content title="Contents of repeated and diagonal cubic evaluations"}
+The two remaining divisibilities in He, Yao, and Yau's equation (2.11) are the nonnegative generators of the respective evaluation ideals on $L$. Write $P(x)=\mu(x,x,x)$. The finite formulas in terms of the ambient generators are
+
+$$
+\begin{aligned}
+d_2\mathbb Z
+ &=\langle\mu(x,x,y):x,y\in L\rangle\\
+ &=\langle d_{iik},\,2d_{ijk}\ (i<j)\rangle,\\
+d_3\mathbb Z
+ &=\langle P(x):x\in L\rangle\\
+ &=\langle d_{iii},\,3(d_{iij}\pm d_{ijj})\ (i<j),\,6d_{ijk}\ (i<j<k)\rangle .
+\end{aligned}
+$$ {#eq:cubic_repeated_diagonal_content}
+
+For $d_2$, expand $\mu(x,x,y)$ in the $H_i$. Evaluating at $x=H_i$, $y=H_k$ gives $d_{iik}$, and subtracting the two pure evaluations from the evaluation at $x=H_i+H_j$ gives $2d_{ijk}$. For $d_3$, expand $P(\sum_i a_iH_i)$. The pair $i,j$ contributes $3a_i^2a_jd_{iij}+3a_ia_j^2d_{ijj}$. The coefficients $a_i^2a_j$ and $a_ia_j^2$ have equal parity, so this term is an integer combination of the two signed pair generators. Conversely, $P(H_i\pm H_j)-P(H_i)\mp P(H_j)$ recovers the signed pair combinations up to sign, and the alternating three-variable difference of $P$ gives $6d_{ijk}$. Diagonal entries are themselves evaluations. These arguments work for any integral generating set of $L$, including dependent restrictions. [@he-yao-yau-topology; @chandra-enumerating-topology]
+:::
+
+The inclusions of evaluation sets give $d_1\mid d_2\mid d_3$, where $d_1=g_3$. The diagonal evaluation ideal sharpens the Riemann–Roch check to $\gcd(2d_3,12)\mid d_p$, with $d_p=g_2$. Every non-product record passes both checks. Replacing $(d_1,d_p)$ with $(d_1,d_2,d_3,d_p)$ increases the number of signatures across {{INTEGRAL_RECORD_COUNT}} rows from {{INTEGRAL_PAIR_COUNT}} to {{REFINEMENT_QUADRUPLES}}. The number of Hodge groups with more than one signature rises from {{INTEGRAL_HODGE_SPLIT}} to {{REFINEMENT_HODGE_SPLIT}} out of {{INTEGRAL_HODGE_GROUPS}}. In all, {{REFINEMENT_HODGE_GROUPS_REFINED}} Hodge groups gain signatures, including groups the pair already distinguished.
+
+Records {{REFINEMENT_WITNESS_FIRST_ID}} and {{REFINEMENT_WITNESS_SECOND_ID}} share Hodge pair $(5,53)$, Euler characteristic $-96$, ambient dimensions, and the archived favorable flag. Their entire Hodge group has one original content pair, $(1,4)$. Their four-part signatures are ${{REFINEMENT_WITNESS_FIRST_SIGNATURE}}$ and ${{REFINEMENT_WITNESS_SECOND_SIGNATURE}}$, separated by $d_2$. The Hodge pair $(4,32)$ supplies a separate $d_3$ comparison. Records 6177 and 6232 share $(d_1,d_2,d_p)=(2,2,4)$ and have $d_3=2$ and $4$, respectively. Both comparisons concern the supplied ambient lattices. The full-lattice obstruction below uses rank-one lattices, for which all three cubic divisibilities equal $|\mu(H,H,H)|$ at a primitive generator $H$.
 
 ## Full-lattice comparison of two rank-one threefolds
 

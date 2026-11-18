@@ -19,6 +19,7 @@ Wolfram kernel.
 | [`data/atlas-comparison.json`](../data/atlas-comparison.json) | Exact presentation and Hodge-pair weights, Euler distributions, and decomposition of favorability shares |
 | [`data/bicubic-exact.json`](../data/bicubic-exact.json) | Equation coefficients, smoothness minors, and rational map ranks with exact cohomology in the finite charge grid |
 | [`data/integral-invariants.json`](../data/integral-invariants.json) | Record-level divisibilities of the cubic form and Chern functional on the ambient divisor lattice, grouped by Hodge numbers |
+| [`data/cubic-refinement.json`](../data/cubic-refinement.json) | Repeated and diagonal cubic divisibility across the same archive, with matched record witnesses |
 | [`manuscript/references.bib`](../manuscript/references.bib) | Primary geometry, software, and dataset citations |
 
 Numbered definitions, propositions, lemmas, corollaries, examples,
@@ -76,7 +77,9 @@ mkdir -p output/replay/data
   --figure output/replay/figures/bicubic-exact.png
 "$renderer_python" scripts/integral_invariants.py --data output/replay/data/integral-invariants.json \
   --figure output/replay/figures/integral-invariants.png
-for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact integral-invariants; do
+"$renderer_python" scripts/cubic_refinement.py --reference output/replay/data/integral-invariants.json \
+  --output output/replay/data/cubic-refinement.json
+for name in analytic-checks manuscript-analysis chern-audit atlas-comparison bicubic-exact integral-invariants cubic-refinement; do
   diff -u "data/$name.json" "output/replay/data/$name.json" || exit 1
 done
 "$renderer_python" scripts/render_graphical_abstract.py --data-dir output/replay/data \
@@ -88,8 +91,10 @@ generators without output overrides to refresh them. Use
 `render_figures.py --suite --format pdf --figures-dir DIR` for vector
 exports of the four release-dashboard figures. Pass a PDF path as
 `--figure` to each additional generator to export the remaining manuscript
-figures as vectors. The older `--summary` and `--output` options retain
-the single-atlas workflow.
+figures as vectors. The plots and color keys in these exports are geometric
+paths or text. Use `pdfimages -list` to confirm that they contain no raster
+objects. The older `--summary` and `--output` options retain the single-atlas
+workflow.
 
 ## Hydrate, render and validate
 
@@ -131,6 +136,10 @@ directory. Generate `SHA256SUMS` in that directory with relative paths.
 - `figures/` contains all eight named PDF exports and `figure_registry.json`.
 - `data/` contains `manuscript-analysis.json`, `chern-audit.json`, `atlas-comparison.json`, `bicubic-exact.json`, `integral-invariants.json`, and the renderer's `software_and_analysis.json`.
 - `reports/` contains `validation_report.json` and `artifact_manifest.json`.
+
+The release also includes `cubic-refinement.json` as supplemental research
+data. It traces to the same integral audit and records the two additional
+divisibility invariants, their refinement counts, and matched witnesses.
 
 Run `python scripts/package_research.py EXPORT --template-commit COMMIT
 --title TITLE --pages PAGES` from the project checkout. Use the full

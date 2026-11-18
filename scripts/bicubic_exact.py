@@ -83,7 +83,7 @@ def plot(output, result):
     teal, purple, gold = "#087c76", "#755391", "#a65320"
     ramp = LinearSegmentedColormap.from_list("bicubic_excess", ("#f3f6f8", "#8ab9be", "#12616c", "#17344b"))
     lower, upper = result["charge_range_per_axis"]
-    extent = (lower - .5, upper + .5, lower - .5, upper + .5)
+    edges = np.arange(lower, upper + 2) - .5
     width = upper - lower + 1
     excess = np.zeros((width, width), dtype=int)
     row_by_charge = {}
@@ -105,14 +105,16 @@ def plot(output, result):
                  fontsize=9, color=secondary, va="top")
         fig.add_artist(Line2D([.088, .973], [.825, .825], transform=fig.transFigure, color=grid, lw=.7))
         left.set_title("A   Excess in each middle degree", loc="left", fontsize=10, fontweight="bold", pad=8)
-        image = left.imshow(excess, origin="lower", extent=extent, interpolation="nearest", cmap=ramp, norm=normalization)
+        mesh = left.pcolormesh(edges, edges, excess, shading="flat", cmap=ramp, norm=normalization)
+        left.set_aspect("equal")
         left.axhline(0, color=secondary, lw=.55, alpha=.5)
         left.axvline(0, color=secondary, lw=.55, alpha=.5)
         left.plot([lower, upper], [upper, lower], linestyle="--", color=gold, linewidth=1)
         left.scatter(3, -3, color="white", edgecolor=gold, linewidth=1.7, s=38, zorder=4)
         left.set(xlabel="Charge a", ylabel="Charge b", xticks=range(lower, upper + 1, 4), yticks=range(lower, upper + 1, 4))
         key_axis = fig.add_axes((.135, .105, .275, .026))
-        key = fig.colorbar(image, cax=key_axis, orientation="horizontal")
+        key = fig.colorbar(mesh, cax=key_axis, orientation="horizontal")
+        key.solids.set_rasterized(False)
         ticks = sorted({0, 7, round(largest / 3), largest})
         key.set_ticks(ticks, labels=[str(tick) for tick in ticks])
         key.minorticks_off()
