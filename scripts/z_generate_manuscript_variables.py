@@ -38,7 +38,7 @@ def figures_from_source(root, variables):
         "fig:chern_audit": "Hexagonal count plot of polarized Chern pairings and a scatter plot highlighting index extremes at one Hodge pair.",
         "fig:atlas_comparison": "Two Euler distribution steps, two ambient-factor profiles, and a signed decomposition of the change in archived favorability.",
         "fig:bicubic_exact": "Exact bicubic cohomology in a specified smooth member and its excess over the generic formula.",
-        "fig:integral_invariants": "Divisibility of cubic intersections and second Chern pairings on ambient divisor lattices, with breakdowns by Hodge pair.",
+        "fig:integral_invariants": "Logarithmic heatmap of cubic and second Chern content across the archive. A solid outline marks the cell (9, 54) for record 7878 and a dashed outline marks (12, 60) for record 7879. Adjacent cards show their common Hodge pair and distinct rank-one invariants.",
     }
     generated_by = {
         "fig:chern_audit": "scripts/chern_audit.py",

@@ -4,6 +4,12 @@
   --ink: #172b29;
   --dim: #536561;
   --accent: #006658;
+  --link-on-light: #a22524;
+  --link-hover-on-light: #781513;
+  --link-on-dark: #ffa69d;
+  --link-hover-on-dark: #ffd2cc;
+  --link: var(--link-on-light);
+  --link-hover: var(--link-hover-on-light);
   --line: #d8e1dc;
   --mint: #b8f0d8;
   --night: #102823;
@@ -23,7 +29,8 @@ body { margin: 0; background: var(--paper); color: var(--ink); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .48; }
-a { color: var(--accent); text-underline-offset: 3px; }
+a[href] { color: var(--link); text-underline-offset: 3px; }
+a[href]:is(:hover, :focus-visible) { color: var(--link-hover); text-decoration-line: underline; }
 :focus-visible { outline: 3px solid #117a6c; outline-offset: 3px; }
 [hidden] { display: none !important; }
 .skip-link { position: fixed; z-index: 8; top: .65rem; left: .65rem; padding: .55rem .75rem; background: var(--white); clip-path: inset(50%); }
@@ -31,13 +38,12 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .site-header { background: #f9fbf6; border-bottom: 1px solid var(--line); }
 .header-inner, main { width: min(100% - 5.5rem, 1440px); margin-inline: auto; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 68px; }
-.brand { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: .75rem; font-size: 1.12rem; font-weight: 730; }
+.brand { text-decoration: none; display: inline-flex; align-items: center; gap: .75rem; font-size: 1.12rem; font-weight: 730; }
 .brand-icon { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 10px; color: #e6fcf1; background: var(--night); font: italic 1.35rem Georgia, serif; }
-.brand-sub { color: var(--dim); font-weight: 520; }
+.brand-sub { font-weight: 520; }
 nav { display: flex; gap: clamp(.9rem, 3vw, 2.25rem); font-size: .87rem; }
-nav a { text-decoration: none; color: #435853; font-weight: 620; }
-nav a:hover { text-decoration: underline; }
-.kernel-indicator { text-decoration: none; white-space: nowrap; font-size: .79rem; color: var(--dim); font-weight: 640; }
+nav a { text-decoration: none; font-weight: 620; }
+.kernel-indicator { text-decoration: none; white-space: nowrap; font-size: .79rem; font-weight: 640; }
 .kernel-indicator > span:first-child { display: inline-block; width: 8px; height: 8px; border: 1px solid #798a80; background: #b4c2b8; border-radius: 50%; margin-right: .45rem; }
 .kernel-indicator > span:first-child.ready { background: #6fbd8d; border-color: #46795b; }
 main { padding-block: 1.5rem 3rem; }
@@ -52,6 +58,9 @@ h1 { margin: 0 0 1.1rem; font-family: "Instrument Serif", "Iowan Old Style", "Pa
 .button:hover:not(:disabled) { background: #005448; }
 .hero-button { background: var(--mint); color: var(--night); }
 .hero-button:hover:not(:disabled) { background: #d5f8e8; }
+:is(.hero, .research-cover) { --link: var(--link-on-dark); --link-hover: var(--link-hover-on-dark); }
+a.hero-button[href] { color: var(--link-on-light); }
+a.hero-button[href]:is(:hover, :focus-visible) { color: var(--link-hover-on-light); }
 .secondary-hero { color: #ecf8f1; background: transparent; border-color: #72998a; }
 .secondary-hero:hover:not(:disabled) { background: #294a3d; }
 .hero :focus-visible { outline-color: #b8f0d8; }
@@ -250,6 +259,8 @@ fieldset legend { font-size: .83rem; font-weight: 690; margin: 0 0 .28rem; paddi
     --ink: #e9f3ee;
     --dim: #aec1b9;
     --accent: #a3e6d0;
+    --link: var(--link-on-dark);
+    --link-hover: var(--link-hover-on-dark);
     --line: #344b42;
     --white: #1a2a24;
     --plot-grid: #344d43;
@@ -263,7 +274,6 @@ fieldset legend { font-size: .83rem; font-weight: 690; margin: 0 0 .28rem; paddi
   :focus-visible { outline-color: #a3e6d0; }
   .site-header { background: #14241e; }
   .brand-icon { color: #16342b; background: #a3e6d0; }
-  nav a { color: var(--dim); }
   .hero { border: 1px solid #416555; }
   .filters input, .filters select, .text-button, .square-button { background: #20362e; border-color: #4f6e61; color: var(--ink); }
   .text-button:hover:not(:disabled), .square-button:hover:not(:disabled) { background: #304b3f; }

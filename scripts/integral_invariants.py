@@ -125,7 +125,7 @@ def plot(payload, outputs):
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LogNorm
+    from matplotlib.colors import LinearSegmentedColormap, LogNorm
     from matplotlib.patches import Rectangle
     from matplotlib.ticker import StrMethodFormatter
 
@@ -134,8 +134,14 @@ def plot(payload, outputs):
     cubic_axis = sorted({g3 for g3, _ in counts})
     chern_axis = sorted({g2 for _, g2 in counts})
     ink, subdued, border = "#172f43", "#405b6c", "#d6e1e8"
-    cmap = plt.get_cmap("Blues")
-    norm = LogNorm(1, 10 ** (len(str(max(counts.values())))))
+    highlights = tuple(zip(
+        payload["witness"], ("#674b94", "#a04418"), ("#f5f0fa", "#fff2e9"), ("solid", "dashed"), strict=True,
+    ))
+    blues = plt.get_cmap("Blues")
+    cmap = LinearSegmentedColormap.from_list("archive-counts", blues([.14, .31, .53, .74, .95]))
+    maximum = max(counts.values())
+    norm = LogNorm(1, maximum)
+    scale_ticks = sorted({tick for tick in (1, 10, 100, 1000, maximum) if tick <= maximum})
     with plt.rc_context({
         "font.family": "DejaVu Sans", "font.size": 11, "text.color": ink,
         "axes.labelcolor": ink, "xtick.color": subdued, "ytick.color": subdued,
@@ -158,6 +164,11 @@ def plot(payload, outputs):
                     matrix.text(x + .5, y + .5, f"{count:,}", ha="center", va="center",
                                 fontsize=8.5, weight="bold" if count >= 100 else "normal",
                                 color="white" if norm(count) >= .64 else ink)
+        for row, accent, _, linestyle in highlights:
+            x = cubic_axis.index(row["cubic_content"])
+            y = chern_axis.index(row["chern_content"])
+            matrix.add_patch(Rectangle((x + .08, y + .10), .84, .80, fill=False,
+                                       edgecolor=accent, linewidth=1.75, linestyle=linestyle))
         matrix.set(xlim=(0, len(cubic_axis)), ylim=(0, len(chern_axis)),
                    xticks=[i + .5 for i in range(len(cubic_axis))], xticklabels=cubic_axis,
                    yticks=[i + .5 for i in range(len(chern_axis))], yticklabels=chern_axis,
@@ -167,30 +178,31 @@ def plot(payload, outputs):
             spine.set_visible(False)
         legend = fig.add_axes((.102, .075, .44, .022))
         scale = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=legend,
-                             orientation="horizontal", ticks=(1, 10, 100, 1000), format=StrMethodFormatter("{x:,.0f}"))
+                             orientation="horizontal", ticks=scale_ticks, format=StrMethodFormatter("{x:,.0f}"))
         scale.solids.set_rasterized(False)
         scale.minorticks_off()
         scale.outline.set_visible(False)
         scale.ax.tick_params(labelsize=8, length=2)
-        fig.text(.56, .075, "Records per cell", fontsize=9, color=subdued)
+        fig.text(.565, .075, "Records per cell", fontsize=9, color=subdued)
 
         side = fig.add_axes((.715, .21, .245, .57))
         side.set_axis_off()
-        side.set_title("B   Equal Hodge numbers", loc="left", fontsize=12, weight="bold", pad=12)
+        side.set_title("B   Rank-one witnesses", loc="left", fontsize=12, weight="bold", pad=12)
         first = payload["witness"][0]
         h11, h21 = first["hodge"]
         side.text(0, .969, rf"$(h^{{1,1}},h^{{2,1}})=({h11},{h21})$   ·   $\chi={first['euler']}$",
                   fontsize=11, va="top", color=subdued)
-        for row, bottom, accent, background in zip(
-            payload["witness"], (.505, .075), ("#1b628e", "#99471d"), ("#ecf5fb", "#fff2e9"), strict=True,
-        ):
+        for (row, accent, background, linestyle), bottom in zip(highlights, (.505, .075), strict=True):
             side.add_patch(Rectangle((0, bottom), 1, .37, facecolor=background, edgecolor=border, linewidth=.7))
-            side.text(.07, bottom + .275, f"Record #{row['id']}", fontsize=12, weight="bold", color=accent)
+            side.plot((.07, .18), (bottom + .291, bottom + .291), color=accent,
+                      linewidth=1.75, linestyle=linestyle, solid_capstyle="butt")
+            side.text(.205, bottom + .275, f"Record #{row['id']}", fontsize=12, weight="bold", color=accent)
             degrees = ",".join(map(str, row["degrees"]))
             side.text(.07, bottom + .179, rf"Degrees $({degrees})$ in $\mathbf{{P}}^{{{row['ambient_dimension']}}}$",
                       fontsize=9.5)
             side.text(.07, bottom + .055, rf"$g_3={row['cubic_content']}$" + "     " + rf"$g_2={row['chern_content']}$",
                       fontsize=15, weight="bold")
+        side.set(xlim=(0, 1), ylim=(0, 1))
         for output in outputs:
             output.parent.mkdir(parents=True, exist_ok=True)
             metadata = {"CreationDate": None, "ModDate": None} if output.suffix == ".pdf" else None

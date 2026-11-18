@@ -82,6 +82,9 @@ The two cards show the archived configuration matrices, the shared Hodge
 pair `(3, 47)`, Euler characteristic `-88`, and the common four-part
 signature `(2, 2, 2, 4)`. Their hyperplane line-bundle indices are
 `(2, 4, 4)` for record **7626** and `(2, 4, 5)` for record **7635**.
+The distribution shows the unit and non-unit counts in the full cohort.
+Its detail bars use the 138 non-unit records as their denominator, so
+the rare gcd values can be compared at a readable scale.
 
 Each card has two actions.
 

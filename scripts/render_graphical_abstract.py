@@ -100,7 +100,7 @@ def cover_evidence(studies):
         or not any(value % 2 for value in second["hyperplane_indices"])
     ):
         raise ValueError("The cover requires a matched witness with an even and an odd-capable index.")
-    return first, second, totals, len(records), nonunit
+    return first, second, totals, len(records), counts
 
 
 def box(fig, x, y, width, height, fill, edge="none", radius=.012):
@@ -164,24 +164,32 @@ def witness_panel(fig, x, witness, accent, pale, outcome):
     text(fig, x, .376, outcome, 9.1, color=accent, weight="bold")
 
 
-def cohort_panel(fig, totals, records, nonunit):
-    text(fig, .046, .277, f"Distinct ambient signatures across {records:,} non-product records", 9.4, weight="bold")
+def cohort_panel(fig, totals, records, counts):
+    text(fig, .046, .277, f"Signatures across {records:,} non-product records", 9.4, weight="bold")
     labels = ("Cubic and Chern", "+ repeated and diagonal", "+ the index gcd")
     for x, total, label in zip((.114, .308, .509), totals, labels, strict=True):
         text(fig, x, .183, str(total), 23, weight="bold", ha="center", color=TEAL)
         text(fig, x, .115, label, 8.4, color=MUTED, ha="center")
     for x in (.205, .406):
         text(fig, x, .183, "→", 17, color=MUTED, ha="center")
-    rule(fig, .642, .642, .094, .229)
-    text(fig, .669, .183, f"{nonunit:,} records", 16, weight="bold", color=RUST)
-    text(fig, .669, .115, "with index gcd above one", 8.4, color=MUTED)
+    rule(fig, .632, .632, .094, .285)
+    nonunit = sorted((divisor, count) for divisor, count in counts.items() if divisor > 1)
+    largest_count = max((count for _, count in nonunit), default=1)
+    text(fig, .666, .277, fr"{records - counts[1]:,} records with $d_\chi>1$", 9.4, weight="bold", color=RUST)
+    text(fig, .667, .242, r"$d_\chi$", 7.5, color=MUTED, ha="center")
+    text(fig, .955, .242, "Records", 7.5, color=MUTED, ha="right")
+    for i, (divisor, count) in enumerate(nonunit):
+        y = .213 - .027 * i
+        text(fig, .667, y, str(divisor), 8.0, ha="center")
+        rule(fig, .704, .704 + .203 * count / largest_count, y, y, color=RUST)
+        text(fig, .955, y, f"{count:,}", 8.0, color=RUST, ha="right", weight="bold")
     rule(fig, .045, .955, .076, .076)
     text(fig, .045, .041, "CIPro v1.0 CICY3 archive · Exact Python audit of the ambient divisor lattices",
          7.4, color=MUTED)
 
 
 def render(studies, pdf, png):
-    first, second, totals, records, nonunit = cover_evidence(studies)
+    first, second, totals, records, counts = cover_evidence(studies)
     odd_axis = next(i for i, value in enumerate(second["hyperplane_indices"], start=1) if value % 2)
     odd_value = second["hyperplane_indices"][odd_axis - 1]
     with matplotlib.rc_context({"font.family": "DejaVu Sans", "pdf.fonttype": 42}):
@@ -193,7 +201,7 @@ def render(studies, pdf, png):
         witness_panel(fig, .045, first, TEAL, TEAL_PALE, "All ambient line-bundle indices are even")
         witness_panel(fig, .513, second, RUST, RUST_PALE,
                       fr"Odd index at $H_{odd_axis}$ · $\chi(X,\mathcal{{O}}_X(H_{odd_axis}))={odd_value}$")
-        cohort_panel(fig, totals, records, nonunit)
+        cohort_panel(fig, totals, records, counts)
         pdf.parent.mkdir(parents=True, exist_ok=True)
         png.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(pdf, format="pdf", metadata={

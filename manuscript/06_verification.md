@@ -33,7 +33,7 @@ The package is **{{PACKAGE_NAME}} {{PACKAGE_VERSION}}**, with Python requirement
 
 For a calculation needed in subsequent work, retain the package and release revisions, backend, runtime, original inputs and options, actual result, and messages. When using an archive row, include its ID, dataset digest, and subset filters. Random equations require their concrete coefficients or a seed together with the generator and version. Preserve WXF and Wolfram version for kernel-native symbolic results. These records allow the same case to be replayed even when later versions extend native dispatch or change the representations of intermediate values.
 
-The [versioned GitHub release]({{GITHUB_RELEASE_URL}}) contains the wheel, manuscript, graphical abstract, vector figures, and exact analysis receipts. In Figure 6, **Compare index divisibility** opens the two configurations on the graphical abstract. For each record the dashboard can open the catalogue matrix or recompute the full ambient fixed divisor and the individual hyperplane indices in Python.
+The [versioned GitHub release]({{GITHUB_RELEASE_URL}}) provides the software and the corresponding archived research files. The source revision above identifies this render. **Compare index divisibility** on the dashboard cover opens the two configurations shown in the graphical abstract. Figure 6 displays the counts for all observed index gcds and can open each witness configuration or recompute its full ambient fixed divisor and its individual hyperplane indices in Python.
 
 ## Requirements for extending the comparisons
 

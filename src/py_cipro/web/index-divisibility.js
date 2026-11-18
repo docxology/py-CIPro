@@ -54,6 +54,53 @@ function recordCard(record, openRecords, ui) {
   return card;
 }
 
+function distributionBar(node, share) {
+  const track = node("span", "", "index-distribution-track");
+  const fill = node("span");
+  track.setAttribute("aria-hidden", "true");
+  fill.style.width = `${100 * share}%`;
+  track.append(fill);
+  return track;
+}
+
+function indexDistribution(node, count, summary, distribution) {
+  const figure = node("figure", "", "index-distribution");
+  const caption = node("figcaption");
+  caption.append(
+    node("h5", "Index gcd distribution"),
+    node("p", `Across all ${count.format(summary.records)} non-product records`),
+  );
+  const chart = node("div", "", "index-distribution-grid");
+  const overall = node("div");
+  const percentage = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 2 });
+  const unit = summary.records - summary.nonunit_records;
+  const share = summary.nonunit_records / summary.records;
+  const totals = node("dl", "", "index-distribution-totals");
+  totals.append(
+    measure(node, "GCD equals 1", `${count.format(unit)} (${percentage.format(1 - share)})`),
+    measure(node, "GCD above 1", `${count.format(summary.nonunit_records)} (${percentage.format(share)})`),
+  );
+  overall.append(totals, distributionBar(node, share));
+
+  const detail = node("div");
+  detail.append(node("h6", `Breakdown of the ${count.format(summary.nonunit_records)} records with gcd above 1`));
+  const rows = node("ul", "", "index-distribution-values");
+  for (const { value, count: frequency } of distribution) {
+    if (value === 1) continue;
+    const row = node("li");
+    row.append(
+      node("span", `GCD ${value}`),
+      distributionBar(node, frequency / summary.nonunit_records),
+      node("strong", count.format(frequency)),
+    );
+    rows.append(row);
+  }
+  detail.append(rows);
+  chart.append(overall, detail);
+  figure.append(caption, chart);
+  return figure;
+}
+
 export function mountIndexDivisibility(parent, openRecords, ui) {
   const { node, request, count } = ui;
   const section = node("section", "", "index-divisibility");
@@ -81,7 +128,7 @@ export function mountIndexDivisibility(parent, openRecords, ui) {
     status.classList.remove("error");
     status.textContent = "Loading index-divisibility audit…";
     try {
-      const { witness, summary } = await request(auditPath);
+      const { witness, summary, distribution } = await request(auditPath);
       const [first] = witness;
       const shared = node("dl", "", "index-divisibility-shared");
       shared.append(
@@ -92,9 +139,9 @@ export function mountIndexDivisibility(parent, openRecords, ui) {
       const comparison = node("div", "", "index-divisibility-comparison");
       comparison.append(...witness.map(record => recordCard(record, openRecords, ui)));
       const interpretation = node("p",
-        `Adding the index gcd raises the number of distinct signatures from ${count.format(summary.signatures_before)} to ${count.format(summary.signatures_after)} across ${count.format(summary.records)} non-product records. ${count.format(summary.nonunit_records)} have an index gcd greater than one.`,
+        `Adding the index gcd raises the number of distinct signatures from ${count.format(summary.signatures_before)} to ${count.format(summary.signatures_after)}.`,
         "index-divisibility-interpretation");
-      section.append(shared, comparison, interpretation);
+      section.append(shared, comparison, indexDistribution(node, count, summary, distribution), interpretation);
       status.remove();
       retry.remove();
     } catch (error) {

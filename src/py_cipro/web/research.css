@@ -36,7 +36,6 @@
 .research-cover-visual > a { display: block; background: #fff; border: 1px solid #91b4a5; border-radius: 9px; overflow: hidden; }
 .research-cover-visual img { width: 100%; display: block; height: auto; }
 .research-cover-visual figcaption { display: flex; justify-content: center; flex-wrap: wrap; gap: .35rem 1rem; margin-top: .55rem; text-align: center; font-size: .75rem; }
-.research-cover-visual figcaption a { color: #d4f3e4; }
 .research-cover-actions, .research-figure-links, .research-jump-links, .research-actions {
   display: flex;
   align-items: center;
@@ -357,6 +356,20 @@
 .index-divisibility-hyperplanes dt { color: var(--dim); font-size: .7rem; }
 .index-divisibility-hyperplanes dd { margin: .12rem 0 0; font-size: 1.05rem; font-weight: 670; font-variant-numeric: tabular-nums; }
 .index-divisibility-hyperplanes .index-divisibility-odd { border-color: var(--research-contribution); background: color-mix(in srgb, var(--research-contribution) 16%, var(--white)); }
+.index-distribution { margin: .85rem 0 0; padding: .9rem; border: 1px solid var(--line); border-radius: 8px; background: var(--research-graph-bg); }
+.index-distribution h5 { margin: 0; font-size: .87rem; }
+.index-distribution figcaption p { margin: .25rem 0 .75rem; color: var(--dim); font-size: .75rem; }
+.index-distribution-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: .85rem 1.2rem; }
+.index-distribution-totals { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .55rem .9rem; margin: 0 0 .45rem; }
+.index-distribution-totals dt { font-size: .73rem; color: var(--dim); }
+.index-distribution-totals dd { margin: .2rem 0 0; font-size: .91rem; font-weight: 680; font-variant-numeric: tabular-nums; }
+.index-distribution-track { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--plot-bar-empty); }
+.index-distribution-track > span { background: var(--research-contribution); }
+.index-distribution-totals + .index-distribution-track { justify-content: flex-end; height: 11px; }
+.index-distribution h6 { margin: 0 0 .35rem; color: var(--dim); font-size: .73rem; }
+.index-distribution-values { display: grid; gap: .27rem; margin: 0; padding: 0; list-style: none; }
+.index-distribution-values li { display: grid; grid-template-columns: 3.7rem minmax(0, 1fr) 2.1rem; gap: .5rem; align-items: center; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.index-distribution-values strong { text-align: right; }
 .index-divisibility-interpretation { margin: .8rem 0 0; color: var(--dim); font-size: .79rem; line-height: 1.5; }
 
 @media (prefers-color-scheme: dark) {
@@ -392,6 +405,7 @@
   .integral-witness-geometry { font-size: 1.35rem; }
   .integral-refinement, .index-divisibility { padding: .85rem; }
   .index-divisibility-comparison { grid-template-columns: minmax(0, 1fr); }
+  .index-distribution-grid { grid-template-columns: minmax(0, 1fr); }
   .index-divisibility-shared { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .index-divisibility-shared > div:last-child { grid-column: 1 / -1; }
   .refinement-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }

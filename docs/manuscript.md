@@ -121,7 +121,10 @@ uv run --no-sync python scripts/pipeline/stage_04_validate.py --project "working
 
 The combined PDF is in `output/pdf/` inside the py-CIPro checkout. The
 template names it from the checkout directory. Its validation and provenance
-reports are in `output/reports/`. The authored variables resolve into
+reports are in `output/reports/`. The project preamble sets the same red
+for internal references, citations, and external links. Use
+`pdfinfo -url` and `pdfinfo -dests` to inspect the resolved targets.
+The authored variables resolve into
 `output/data/manuscript_variables.json`, and
 `output/data/software_and_analysis.json` binds the machine-readable software
 record to the input, figure, and cover SHA-256 digests. Figure captions and

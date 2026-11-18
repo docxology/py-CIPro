@@ -8,14 +8,15 @@
 \usepackage[nottoc,notlof,notlot]{tocbibind}
 \lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible}
 
-\definecolor{ciprolink}{HTML}{156568}
+\definecolor{ciprolink}{HTML}{B4232A}
+\definecolor{ciprobrand}{HTML}{156568}
 \definecolor{ciproquiet}{HTML}{3C596A}
-\hypersetup{linkcolor=ciprolink,citecolor=ciprolink,urlcolor=ciprolink}
+\hypersetup{colorlinks=true,allcolors=ciprolink}
 \setlength{\headheight}{14pt}
 \setlength{\headsep}{13pt}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\sffamily\footnotesize\bfseries\color{ciprolink} py-CIPro}
+\fancyhead[L]{\sffamily\footnotesize\bfseries\color{ciprobrand} py-CIPro}
 \fancyhead[R]{\sffamily\footnotesize\color{ciproquiet} Complete-intersection geometry}
 \fancyfoot[R]{\sffamily\footnotesize\color{ciproquiet}\thepage}
 \renewcommand{\headrulewidth}{0.25pt}
