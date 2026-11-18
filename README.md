@@ -19,7 +19,7 @@ py-cipro-dashboard
 
 Open [the local dashboard](http://127.0.0.1:8765/). It reads the verified `Cicy3` member and links the Hodge plot, Euler distribution, record table, and configuration-matrix inspector across all 7,890 archived rows. Filter or select a point to see its contributing records. The 22 archived product rows use `(0, 0)` placeholders for their Hodge pair. The explorer identifies those rows separately. The archive view runs offline.
 
-Open **Manuscript** to read the revised paper and explore all seven interactive figures. Drill down to the archive records behind a plotted group or rerun the Chern audit, catalogue weighting, and line-bundle calculations in Python. Each figure has a vector PDF download. [Research dashboard](docs/dashboard.md#read-and-reproduce-the-manuscript-figures)
+Open **Manuscript** to read the paper and explore all eight interactive figures. Drill down to the archive records behind a plotted group or rerun the Chern audit, catalogue weighting, and line-bundle calculations in Python. Each figure has a vector PDF download. [Research dashboard](docs/dashboard.md#read-and-reproduce-the-manuscript-figures)
 
 Python is the dashboard default. Recalculate `CIDim`, `CY`, and `Euler` for an archived configuration or use the **Method lab** to run any of the 148 native method entries. Every native entry includes a runnable example. Choose Wolfram for an activated local kernel, or Auto to try Python first and use Wolfram when the native domain is unsupported. `py-cipro-dashboard --kernel` selects Wolfram as the initial backend. [Dashboard guide](docs/dashboard.md) · [Research guide](docs/research.md) · [Wolfram API guide](docs/wolfram-api.md)
 
@@ -71,6 +71,10 @@ The Git history descends from [JamesGray-Physics/CIPro](https://github.com/James
 On startup the wrapper verifies the archive, extracts it to a private temporary directory, and relocates five hard-coded application-path references in the temporary `CIPro.m`. The original release bytes and upstream algorithms are preserved. Each session checks the public definitions and dispatch registry after loading the package. See `CIProData/DataInfo.txt` within the release for the dataset source attributions.
 
 For the upstream package, cite Lara B. Anderson, Andrei Constantin, James Gray, Yang-Hui He, Seung-Joo Lee, and Andre Lukas, *CIPro Package: Complete Intersections in Products of Projective Spaces and Line Bundles*, [arXiv:2606.27588](https://arxiv.org/abs/2606.27588).
+
+For the Python software and its research outputs, use the versioned citation
+metadata and identify the release used for the calculation.
+[Citation metadata](CITATION.cff) · [GitHub releases](https://github.com/docxology/py-CIPro/releases)
 
 ## Verification
 

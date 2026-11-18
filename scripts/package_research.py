@@ -92,6 +92,8 @@ def package_research(export, destination, template_commit, manuscript_title, man
             for figure in FIGURE_IDS
         },
     }
+    if "publication" in source:
+        provenance["publication"] = source["publication"]
     destination.mkdir(parents=True, exist_ok=True)
     for name, content in assets.items():
         (destination / name).write_bytes(content)

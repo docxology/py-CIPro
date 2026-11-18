@@ -152,3 +152,22 @@ the bindings between the cover, the study data, and the rendered assets before u
 the files in
 `src/py_cipro/research_data/`. Rebuild and test the wheel to check the
 packaged routes. [Dashboard guide](dashboard.md)
+
+## Cite and archive a version
+
+The render writes the GitHub tag URL into the manuscript and validates it
+against `CITATION.cff` and `.zenodo.json`. For a Zenodo deposit, reserve a
+production **version DOI** on the draft, then set the identifier in both
+`publication.doi` in `manuscript/config.yaml` and `doi` in
+`CITATION.cff`. The template prints it as a clickable link on the cover.
+Render and package again, check the visible DOI and both PDF links, and
+archive the exact tested files. Zenodo registers the DOI when the record
+is published. [Zenodo DOI reservation](https://help.zenodo.org/docs/deposit/describe-records/reserve-doi/)
+
+Use the related GitHub tag URL in `.zenodo.json` for the deposit. After the
+DOI resolves, link it from the tagged GitHub release notes and the repository
+citation section. Use one Zenodo record for that version. If the GitHub
+tag has already been released, retain its artifact checksums and attach
+or publish the resulting archival revision with its own provenance.
+Zenodo publishes record metadata and lets depositors restrict file access.
+[Zenodo record access and versioning](https://help.zenodo.org/docs/deposit/about-records/)

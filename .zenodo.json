@@ -1,0 +1,31 @@
+{
+  "title": "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds",
+  "upload_type": "software",
+  "version": "0.9.1",
+  "creators": [
+    {
+      "name": "Friedman, Daniel",
+      "orcid": "0000-0001-6232-9096"
+    }
+  ],
+  "description": "<p>py-CIPro provides Python bindings and exact native calculations for complete intersections in products of projective spaces. This release includes an interactive audit of the Riemann–Roch index fixed divisor on ambient CICY3 divisor lattices. The archive contains the software wheel, manuscript, graphical abstract, vector figures, and record-level analysis data.</p>",
+  "license": "gpl-3.0",
+  "keywords": [
+    "Calabi–Yau threefolds",
+    "complete intersections",
+    "line-bundle cohomology",
+    "exact computation"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/docxology/py-CIPro/releases/tag/v0.9.1",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "10.48550/arXiv.2606.27588",
+      "relation": "references",
+      "resource_type": "publication-preprint"
+    }
+  ]
+}

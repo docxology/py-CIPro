@@ -66,6 +66,22 @@ def main():
     variables, evidence = build_variables(root)
     validate_tokens(root, variables)
     config = yaml.safe_load((root / "manuscript" / "config.yaml").read_text(encoding="utf-8"))
+    citation = yaml.safe_load((root / "CITATION.cff").read_text(encoding="utf-8"))
+    doi = config.get("publication", {}).get("doi")
+    github_release = variables["GITHUB_RELEASE_URL"]
+    if citation["version"] != variables["PACKAGE_VERSION"] or citation["url"] != github_release or citation.get("doi") != doi:
+        raise ValueError("Citation and manuscript publication identifiers must describe the same release")
+    zenodo = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))
+    if zenodo["version"] != variables["PACKAGE_VERSION"] or not any(
+        item["identifier"] == github_release for item in zenodo["related_identifiers"]
+    ):
+        raise ValueError("Zenodo metadata must point to the same GitHub release as the manuscript")
+    evidence["publication"] = {"github_release": github_release}
+    if doi:
+        if not re.fullmatch(r"10\.5281/zenodo\.[1-9][0-9]*", doi):
+            raise ValueError("Use the version DOI issued by production Zenodo")
+        evidence["publication"]["doi"] = doi
+        evidence["publication"]["doi_url"] = f"https://doi.org/{doi}"
     evidence["manuscript"] = {
         "title": config["paper"]["title"],
         "author": ", ".join(author["name"] for author in config["authors"]),

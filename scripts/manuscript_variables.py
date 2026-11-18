@@ -308,6 +308,7 @@ def build_variables(root):
     variables = {
         "PACKAGE_NAME": software["name"],
         "PACKAGE_VERSION": software["version"],
+        "GITHUB_RELEASE_URL": f"https://github.com/docxology/py-CIPro/releases/tag/v{software['version']}",
         "PACKAGE_LICENSE": software["license"],
         "PYTHON_REQUIRES": software["requires_python"],
         "SOURCE_SHORT_COMMIT": source_commit[:12],
@@ -354,6 +355,8 @@ def build_variables(root):
     formatted = {name: as_text(value) for name, value in variables.items()}
     evidence_paths = [
         "pyproject.toml",
+        "CITATION.cff",
+        ".zenodo.json",
         "manuscript/config.yaml",
         "src/py_cipro/_catalog.py",
         "src/py_cipro/_native.py",
@@ -362,8 +365,10 @@ def build_variables(root):
         "src/py_cipro/_research_chern.py",
         "src/py_cipro/_research_cubic.py",
         "src/py_cipro/_research_integral.py",
-        "src/py_cipro/_research_integral.py",
+        "src/py_cipro/_dashboard_research.py",
+        "src/py_cipro/_dashboard_worker.py",
         "src/py_cipro/_dashboard_examples.py",
+        "src/py_cipro/web/index-divisibility.js",
         "src/py_cipro/_release.py",
         "src/py_cipro/catalog.py",
         "scripts/check_intersections.py",
