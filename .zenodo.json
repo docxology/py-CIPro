@@ -4,11 +4,12 @@
   "version": "0.9.3",
   "creators": [
     {
-      "name": "Friedman, Daniel",
+      "name": "Friedman, Daniel Ari",
+      "affiliation": "Active Inference Institute",
       "orcid": "0000-0001-6232-9096"
     }
   ],
-  "description": "<p>py-CIPro provides Python bindings and exact native calculations for complete intersections in products of projective spaces. This release includes an interactive audit of the Riemann–Roch index fixed divisor on ambient CICY3 divisor lattices. The archive contains the software wheel, manuscript, graphical abstract, vector figures, and record-level analysis data.</p>",
+  "description": "<p>py-CIPro provides Python bindings and exact native calculations for complete intersections in products of projective spaces. This release includes an interactive audit of the Riemann–Roch index fixed divisor on ambient CICY3 divisor lattices. The archive contains the software wheel, manuscript, graphical abstract, vector figures, and record-level analysis data.</p><p>Source code: <a href=\"https://github.com/docxology/py-CIPro\">https://github.com/docxology/py-CIPro</a> (release <a href=\"https://github.com/docxology/py-CIPro/releases/tag/v0.9.3\">v0.9.3</a>).</p>",
   "license": "gpl-3.0",
   "keywords": [
     "Calabi–Yau threefolds",
@@ -17,6 +18,11 @@
     "exact computation"
   ],
   "related_identifiers": [
+    {
+      "identifier": "https://github.com/JamesGray-Physics/CIPro/releases/tag/v1.0",
+      "relation": "isDerivedFrom",
+      "resource_type": "software"
+    },
     {
       "identifier": "https://github.com/docxology/py-CIPro/releases/tag/v0.9.3",
       "relation": "isSupplementTo",
@@ -27,5 +33,16 @@
       "relation": "references",
       "resource_type": "publication-preprint"
     }
-  ]
+  ],
+  "custom": {
+    "code:codeRepository": "https://github.com/docxology/py-CIPro",
+    "code:programmingLanguage": [
+      {
+        "id": "python"
+      }
+    ],
+    "code:developmentStatus": {
+      "id": "active"
+    }
+  }
 }
