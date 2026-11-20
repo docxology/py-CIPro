@@ -3,16 +3,45 @@ message: "When using the software or its computational results, cite this versio
 type: software
 title: "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds"
 version: "0.9.3"
+date-released: "2026-11-18"
 authors:
   - family-names: Friedman
-    given-names: Daniel
+    given-names: Daniel Ari
+    affiliation: Active Inference Institute
     orcid: "https://orcid.org/0000-0001-6232-9096"
 license: GPL-3.0-only
 repository-code: "https://github.com/docxology/py-CIPro"
 url: "https://github.com/docxology/py-CIPro/releases/tag/v0.9.3"
 doi: "10.5281/zenodo.24352380"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24352380"
+    description: "Zenodo archive of version 0.9.3"
+  - type: doi
+    value: "10.5281/zenodo.24352379"
+    description: "Zenodo concept DOI for all versions"
 keywords:
   - Calabi–Yau threefolds
   - complete intersections
   - line-bundle cohomology
   - exact computation
+references:
+  - type: article
+    title: "CIPro Package: Complete Intersections in Products of Projective Spaces and Line Bundles"
+    authors:
+      - family-names: Anderson
+        given-names: Lara B.
+      - family-names: Constantin
+        given-names: Andrei
+      - family-names: Gray
+        given-names: James
+      - family-names: He
+        given-names: Yang-Hui
+      - family-names: Lee
+        given-names: Seung-Joo
+      - family-names: Lukas
+        given-names: Andre
+    year: 2026
+    doi: "10.48550/arXiv.2606.27588"
+    url: "https://arxiv.org/abs/2606.27588"
+    repository-code: "https://github.com/JamesGray-Physics/CIPro"
