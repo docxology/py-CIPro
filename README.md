@@ -1,5 +1,9 @@
 # py-CIPro
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24352379.svg)](https://doi.org/10.5281/zenodo.24352379)
+
+Zenodo: [10.5281/zenodo.24352380](https://doi.org/10.5281/zenodo.24352380) (version 0.9.3) · [10.5281/zenodo.24352379](https://doi.org/10.5281/zenodo.24352379) (all versions)
+
 Python bindings and native equivalents for CIPro v1.0, the Wolfram Language package for complete intersections in products of projective spaces. Choose the original Wolfram kernel interface or compute the supported native domains in Python with SymPy.
 
 ## Installation
@@ -74,7 +78,7 @@ For the upstream package, cite Lara B. Anderson, Andrei Constantin, James Gray, 
 
 For the Python software and its research outputs, use the versioned citation
 metadata and identify the release used for the calculation.
-[Citation metadata](CITATION.cff) · [Zenodo archive](https://doi.org/10.5281/zenodo.24352380) · [GitHub releases](https://github.com/docxology/py-CIPro/releases)
+[Citation metadata](CITATION.cff) · [Zenodo archive, version 0.9.3](https://doi.org/10.5281/zenodo.24352380) · [All Zenodo versions](https://doi.org/10.5281/zenodo.24352379) · [GitHub releases](https://github.com/docxology/py-CIPro/releases)
 
 ## Verification
 
