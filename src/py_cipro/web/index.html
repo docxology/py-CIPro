@@ -97,7 +97,7 @@
         <article class="card kernel-card" id="kernel" aria-labelledby="kernel-title">
           <div class="card-heading"><div><h2 id="kernel-title">Calculate properties</h2><p>Compare a fresh calculation with the selected record.</p></div></div>
           <form class="kernel-form" id="compute-form">
-            <label class="backend-field">Compute backend<select id="compute-backend" data-backend-select disabled><option value="python">Python</option><option value="wolfram">Wolfram</option><option value="auto">Auto</option></select></label>
+            <label class="backend-field">Compute backend<select id="compute-backend" data-backend-select disabled><option value="cloud" hidden>Wolfram Cloud</option><option value="python">Python</option><option value="wolfram">Wolfram</option><option value="auto">Auto</option></select></label>
             <fieldset id="kernel-inputs" disabled>
               <legend>CIProp keys</legend>
               <div class="key-list"><label><input type="checkbox" name="property" value="CIDim" checked> CIDim</label><label><input type="checkbox" name="property" value="CY" checked> CY</label><label><input type="checkbox" name="property" value="Euler" checked> Euler</label></div>
