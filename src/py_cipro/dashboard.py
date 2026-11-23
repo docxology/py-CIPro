@@ -30,6 +30,7 @@ from ._dashboard_research import (
 from ._dashboard_worker import MAX_RESPONSE, run_operation
 from ._native import NATIVE_FUNCTIONS, NATIVE_MODIFICATIONS, NATIVE_PROPERTIES
 from .catalog import get_catalog
+from .cloud import CloudAuthenticationError, CloudCIPro, CloudConfigurationError, CloudError, CloudUnavailableError
 
 LOGGER = logging.getLogger(__name__)
 COMPUTE_PROPERTIES = frozenset({"CIDim", "CY", "Euler"})
@@ -62,7 +63,7 @@ class RequestError(Exception):
 
 
 class DashboardServer(ThreadingHTTPServer):
-    def __init__(self, port: int, *, kernel: bool = False):
+    def __init__(self, port: int, *, kernel: bool = False, cloud: bool = False):
         self.catalog = get_catalog()
         self.catalog_body = _json_bytes({
             "dataset": self.catalog.dataset,
@@ -72,6 +73,15 @@ class DashboardServer(ThreadingHTTPServer):
             "records": [record.summary() for record in self.catalog.records],
         })
         self.default_backend = "wolfram" if kernel else "python"
+        self.cloud = None
+        self.cloud_error = None
+        if cloud:
+            try:
+                self.cloud = CloudCIPro.from_environment()
+            except CloudConfigurationError:
+                self.cloud_error = "Set WOLFRAM_CLOUD_OWNER and the Wolfram Cloud consumer credentials."
+            else:
+                self.default_backend = "cloud"
         self.kernel = CIPro(startup_timeout=60, evaluation_timeout=30)
         self.compute_lock = Lock()
         self.method_body = _json_bytes({"methods": [
@@ -84,10 +94,23 @@ class DashboardServer(ThreadingHTTPServer):
     def server_close(self):
         super().server_close()
         with self.compute_lock:
-            self.kernel.close()
+            try:
+                self.kernel.close()
+            finally:
+                if self.cloud is not None:
+                    self.cloud.close()
+
+    def compute_status(self):
+        backends = BACKENDS + ("cloud",) if self.cloud is not None else BACKENDS
+        status = {"enabled": True, "default_backend": self.default_backend, "backends": backends}
+        if self.cloud_error is not None:
+            status["cloud_error"] = self.cloud_error
+        return status
 
     def compute(self, record_id: int, properties: list[str], backend: str) -> dict:
         record = self.catalog.record(record_id)
+        if backend == "cloud":
+            return self.compute_cloud(record_id, properties)
         payload = {
             "kind": "function", "name": "CIProp",
             "args": [{"Conf": record.configuration, "DimPs": record.ambient_dimensions}, properties],
@@ -95,6 +118,26 @@ class DashboardServer(ThreadingHTTPServer):
         }
         result = self.run(payload, backend)
         return {"source": result["source"], "backend": result["backend"], "properties": result["result"]}
+
+    def compute_cloud(self, record_id: int, properties: list[str]) -> dict:
+        if self.cloud is None:
+            message = self.cloud_error or "Start the dashboard with --cloud to use Wolfram Cloud."
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, message)
+        if not self.compute_lock.acquire(blocking=False):
+            raise RequestError(HTTPStatus.CONFLICT, "Another calculation is running. Try again after it finishes.")
+        try:
+            values = self.cloud.properties(record_id, properties)
+        except (CloudConfigurationError, CloudAuthenticationError, CloudUnavailableError) as exc:
+            raise RequestError(HTTPStatus.SERVICE_UNAVAILABLE, "The private Wolfram Cloud endpoint is unavailable.") from exc
+        except CloudError as exc:
+            raise RequestError(HTTPStatus.BAD_GATEWAY, "Wolfram Cloud did not return the requested properties.") from exc
+        finally:
+            self.compute_lock.release()
+        return {
+            "source": f"CIPro {self.catalog.release} in Wolfram Cloud",
+            "backend": "cloud",
+            "properties": values,
+        }
 
     def research(self):
         try:
@@ -187,7 +230,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     raise RequestError(HTTPStatus.BAD_REQUEST, "Give one positive record ID in the query string.")
                 self._json(HTTPStatus.OK, asdict(self._record(int(match[1]))))
             elif target.path == "/api/kernel" and not target.query:
-                self._json(HTTPStatus.OK, {"enabled": True, "default_backend": self.server.default_backend, "backends": BACKENDS})
+                self._json(HTTPStatus.OK, self.server.compute_status())
             elif target.path == "/api/methods" and not target.query:
                 self._reply(HTTPStatus.OK, self.server.method_body, "application/json")
             elif target.path == "/api/research" and not target.query:
@@ -273,10 +316,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
             raise RequestError(HTTPStatus.BAD_REQUEST, "Invalid compute JSON.") from exc
         except TimeoutError as exc:
             raise RequestError(HTTPStatus.REQUEST_TIMEOUT, "Compute request body timed out.") from exc
-    def _backend(self, payload):
-        value = payload.get("backend", self.server.default_backend)
-        if not isinstance(value, str) or value not in BACKENDS:
-            raise RequestError(HTTPStatus.BAD_REQUEST, "Select backend python, wolfram or auto.")
+    def _backend(self, payload, *, allow_cloud=False):
+        default_backend = self.server.default_backend
+        if default_backend == "cloud" and not allow_cloud:
+            default_backend = "python"
+        cloud_requested = self.server.cloud is not None or self.server.cloud_error is not None
+        choices = BACKENDS + ("cloud",) if allow_cloud and cloud_requested else BACKENDS
+        value = payload.get("backend", default_backend)
+        if not isinstance(value, str) or value not in choices:
+            raise RequestError(HTTPStatus.BAD_REQUEST, f"Select a backend from {', '.join(choices)}.")
         return value
 
     def _read_compute_request(self):
@@ -293,7 +341,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             or len(properties) != len(set(properties))
         ):
             raise RequestError(HTTPStatus.BAD_REQUEST, "Select distinct properties from CIDim, CY and Euler.")
-        return record_id, properties, self._backend(payload)
+        return record_id, properties, self._backend(payload, allow_cloud=True)
 
     def _read_lab_request(self):
         payload = self._read_json(MAX_LAB_BODY)
@@ -355,11 +403,13 @@ def _unique_fields(pairs):
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765, help="loopback port, or 0 for an available port")
-    parser.add_argument("--kernel", action="store_true", help="select the local Wolfram kernel as the dashboard default")
+    providers = parser.add_mutually_exclusive_group()
+    providers.add_argument("--kernel", action="store_true", help="select the local Wolfram kernel as the dashboard default")
+    providers.add_argument("--cloud", action="store_true", help="use private Wolfram Cloud for archived record properties")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
         parser.error("--port must be 0–65535")
-    with DashboardServer(args.port, kernel=args.kernel) as server:
+    with DashboardServer(args.port, kernel=args.kernel, cloud=args.cloud) as server:
         print(f"CIPro dashboard: http://127.0.0.1:{server.server_port}/", flush=True)
         try:
             server.serve_forever()

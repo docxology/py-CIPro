@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from py_cipro import CIPro, Evaluation, ambient_index_divisor, cubic_signature, wl
 from py_cipro._dashboard_research import recompute_study
+from py_cipro.cloud import CloudAuthenticationError, CloudCIPro, CloudError
 from py_cipro.dashboard import DashboardServer, MAX_COMPUTE_BODY, MAX_LAB_BODY, NATIVE_TIMEOUT
 
 
@@ -26,8 +27,8 @@ class DashboardTests(unittest.TestCase):
         self.server = self.start_server()
         self.origin = f"http://127.0.0.1:{self.server.server_port}"
 
-    def start_server(self):
-        server = DashboardServer(0)
+    def start_server(self, **options):
+        server = DashboardServer(0, **options)
         self.addCleanup(server.server_close)
         thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
         thread.start()
@@ -90,6 +91,48 @@ class DashboardTests(unittest.TestCase):
                         "source": "CIPro v1.0 Python equivalent", "backend": "python", "properties": QUINTIC_VALUES,
                     })
             kernel_call.assert_not_called()
+
+    def test_cloud_is_scoped_to_archived_compute(self):
+        with patch.object(CloudCIPro, "from_environment") as configure:
+            cloud = configure.return_value
+            cloud.properties.return_value = QUINTIC_VALUES
+            self.server = self.start_server(cloud=True)
+        status, _, payload = self.request("GET", "/api/kernel")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload)["default_backend"], "cloud")
+        self.assertEqual(self.post({**QUINTIC, "properties": ["Get"]})[0], 400)
+        self.assertEqual(self.post(QUINTIC, Origin="https://example.invalid")[0], 403)
+        self.assertEqual(self.post({
+            "kind": "function", "name": "CIProp", "args": [], "options": {}, "backend": "cloud",
+        }, "/api/run")[0], 400)
+        cloud.properties.assert_not_called()
+        status, _, payload = self.post(QUINTIC)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload), {
+            "source": "CIPro v1.0 in Wolfram Cloud", "backend": "cloud", "properties": QUINTIC_VALUES,
+        })
+        cloud.properties.assert_called_once_with(7890, QUINTIC["properties"])
+        with self.server.compute_lock:
+            self.assertEqual(self.post(QUINTIC)[0], 409)
+        for error, expected in ((CloudAuthenticationError, 503), (CloudError, 502)):
+            with self.subTest(error=error), patch.object(cloud, "properties", side_effect=error("private diagnostic")):
+                status, _, payload = self.post(QUINTIC)
+                self.assertEqual(status, expected)
+                self.assertNotIn(b"private diagnostic", payload)
+        status, _, payload = self.post({**QUINTIC, "backend": "python"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload)["backend"], "python")
+
+    def test_cloud_without_configuration_keeps_native_compute(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.server = self.start_server(cloud=True)
+        status, _, payload = self.request("GET", "/api/kernel")
+        self.assertEqual(status, 200)
+        result = json.loads(payload)
+        self.assertEqual(result["default_backend"], "python")
+        self.assertIn("WOLFRAM_CLOUD", result["cloud_error"])
+        self.assertEqual(self.post(QUINTIC)[0], 200)
+        self.assertEqual(self.post({**QUINTIC, "backend": "cloud"})[0], 503)
 
     def test_packaged_manuscript_and_figure_assets(self):
         status, _, data = self.request("GET", "/api/research/provenance")

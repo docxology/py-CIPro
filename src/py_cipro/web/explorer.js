@@ -13,7 +13,7 @@ const interval = (start) => `${start} to ${start + binWidth - 1}`
 const choice = (value) => ['yes', 'no'].includes(value) ? value : 'all'
 const integer = (text) => /^-?\d+$/.test(text || '') ? Number(text) : null
 const isPair = (value) => /^\d{1,3},\d{1,3}$/.test(value || '')
-const backendNames = { python: 'Python', wolfram: 'Wolfram', auto: 'Auto' }
+const backendNames = { python: 'Python', wolfram: 'Wolfram', auto: 'Auto', cloud: 'Wolfram Cloud' }
 const backendName = (backend) => backendNames[backend] ?? 'CIPro'
 
 const state = {
@@ -21,7 +21,7 @@ const state = {
   view: [], query: '', favourable: 'all', product: 'all', pair: null, bin: null,
   research: null,
   recordId: null, record: null, page: 0, sort: 'id', direction: 1,
-  kernelEnabled: false, kernelChecked: false, computing: false, backend: 'python', backends: [],
+  kernelEnabled: false, kernelChecked: false, cloudError: null, computing: false, backend: 'python', backends: [],
 }
 let plotPoints = []
 let requestSerial = 0
@@ -386,7 +386,9 @@ function renderKernelState() {
   status.classList.remove('error')
   if (!state.kernelChecked) status.textContent = 'Checking compute backends.'
   else if (!state.kernelEnabled) status.textContent = 'Calculation is unavailable. The catalogue remains available.'
+  else if (state.cloudError) status.textContent = state.cloudError
   else if (!state.record) status.textContent = 'Choose a record to calculate its properties.'
+  else if (state.backend === 'cloud') status.textContent = 'Wolfram Cloud receives the record ID and selected properties.'
   else if (state.backend === 'wolfram') status.textContent = 'Wolfram uses an activated local kernel.'
   else if (state.backend === 'auto') status.textContent = 'Auto tries Python first and uses a local Wolfram kernel for unsupported inputs.'
   else status.textContent = 'Python calculates these properties locally.'
@@ -656,16 +658,23 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 })
 
 updateMethodBackend = mountMethodLab({
-  $, element, loadJSON, backendName, getBackend: () => state.kernelEnabled ? state.backend : null,
+  $, element, loadJSON, backendName, getBackend: () => state.kernelEnabled ? localBackend() : null,
   getRecord: () => state.record,
 })
 const backendControls = [...document.querySelectorAll('[data-backend-select]')]
 
+function localBackend() {
+  return state.backend === 'cloud' ? 'python' : state.backend
+}
+
 function renderBackendControls() {
   for (const control of backendControls) {
     control.disabled = !state.kernelEnabled
-    for (const option of control.options) option.disabled = !state.backends.includes(option.value)
-    control.value = state.backend
+    for (const option of control.options) {
+      option.disabled = !state.backends.includes(option.value)
+      if (option.value === 'cloud') option.hidden = option.disabled
+    }
+    control.value = control.id === 'method-backend' ? localBackend() : state.backend
   }
   renderKernelState()
 }
@@ -678,7 +687,8 @@ for (const control of backendControls) {
   })
 }
 
-loadJSON('/api/kernel').then(({ enabled, default_backend, backends }) => {
+loadJSON('/api/kernel').then(({ enabled, default_backend, backends, cloud_error }) => {
+  state.cloudError = typeof cloud_error === 'string' ? cloud_error : null
   state.backends = Array.isArray(backends) ? backends.filter((name) => Object.hasOwn(backendNames, name)) : []
   state.kernelEnabled = enabled === true && state.backends.length > 0
   state.backend = state.backends.includes(default_backend) ? default_backend : state.backends[0] ?? 'python'

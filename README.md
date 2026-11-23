@@ -27,6 +27,8 @@ Open **Manuscript** to read the paper and explore all eight interactive figures.
 
 Python is the dashboard default. Recalculate `CIDim`, `CY`, and `Euler` for an archived configuration or use the **Method lab** to run any of the 148 native method entries. Every native entry includes a runnable example. Choose Wolfram for an activated local kernel, or Auto to try Python first and use Wolfram when the native domain is unsupported. `py-cipro-dashboard --kernel` selects Wolfram as the initial backend. [Dashboard guide](docs/dashboard.md) · [Research guide](docs/research.md) · [Wolfram API guide](docs/wolfram-api.md)
 
+With a private Wolfram Cloud deployment configured, `py-cipro-dashboard --cloud` selects it for archived record properties. The method lab and manuscript replays continue to run locally. The `py-cipro-cloud` command supports deployment, status, and qualification. [Wolfram API guide](docs/wolfram-api.md)
+
 The **Manuscript** view includes a graphical abstract, eight interactive figures, and source-record links. In the integral-lattice figure, select a cubic and second Chern gcd pair and rerun a record's exact calculation in Python. The PDF includes a notation table and a methods concordance. [Manuscript build](docs/manuscript.md)
 
 The **Cubic refinement** panel breaks the selected cell into four-part
