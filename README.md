@@ -8,7 +8,7 @@ Python bindings and native equivalents for CIPro v1.0, the Wolfram Language pack
 
 ## Installation
 
-Install Python 3.10 or later. The default Wolfram backend uses an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `backend="python"` on `CIPro` for native computation. Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`. Some upstream cohomology routines use Wolfram’s [legacy Combinatorica package](https://reference.wolfram.com/language/Combinatorica/ref/Compositions.html), which must be available to the kernel.
+Install Python 3.11 or later. The default Wolfram backend uses an activated [Wolfram Engine or Mathematica](https://support.wolfram.com/46070). Set `backend="python"` on `CIPro` for native computation. Set `WOLFRAM_KERNEL` to the executable if automatic discovery cannot find it. The constructor also accepts `kernel=`. Some upstream cohomology routines use Wolfram’s [legacy Combinatorica package](https://reference.wolfram.com/language/Combinatorica/ref/Compositions.html), which must be available to the kernel.
 
 ```sh
 python -m pip install .
