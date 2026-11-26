@@ -1,3 +1,5 @@
+manuscript_dir: docs/manuscript
+
 paper:
   title: "py-CIPro: Exact geometry of complete-intersection Calabi–Yau threefolds"
   date: "2026-11-18"
@@ -22,7 +24,7 @@ rendering:
 render:
   formats:
     pdf: true
-    html: false
+    html: true
     slides: false
     docx: false
     epub: false

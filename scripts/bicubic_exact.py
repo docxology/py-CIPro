@@ -145,7 +145,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=ROOT / "data" / "manuscript-analysis.json")
     parser.add_argument("--data", type=Path, default=ROOT / "data" / "bicubic-exact.json")
-    parser.add_argument("--figure", type=Path, default=ROOT / "manuscript" / "figures" / "bicubic-exact.png")
+    parser.add_argument("--figure", type=Path, default=ROOT / "docs/manuscript" / "figures" / "bicubic-exact.png")
     args = parser.parse_args()
     result = analysis(args.reference)
     args.data.parent.mkdir(parents=True, exist_ok=True)

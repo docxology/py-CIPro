@@ -128,7 +128,7 @@ def plot(payload, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=Path("data/chern-audit.json"))
-    parser.add_argument("--figure", type=Path, default=Path("manuscript/figures/chern-audit.png"))
+    parser.add_argument("--figure", type=Path, default=Path("docs/manuscript/figures/chern-audit.png"))
     args = parser.parse_args()
     report = compute_chern_audit()
     args.data.parent.mkdir(parents=True, exist_ok=True)

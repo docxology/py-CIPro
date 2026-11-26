@@ -357,7 +357,7 @@ def build_variables(root):
         "pyproject.toml",
         "CITATION.cff",
         ".zenodo.json",
-        "manuscript/config.yaml",
+        "docs/manuscript/config.yaml",
         "src/py_cipro/_catalog.py",
         "src/py_cipro/_native.py",
         "src/py_cipro/_research_atlas.py",
@@ -394,7 +394,7 @@ def build_variables(root):
         "literature": literature,
         "figures_sha256": {
             path.name: sha256(path.read_bytes()).hexdigest()
-            for path in sorted((root / "manuscript" / "figures").glob("*.png"))
+            for path in sorted((root / "docs/manuscript" / "figures").glob("*.png"))
         },
         "inputs_sha256": {source: sha256((root / source).read_bytes()).hexdigest() for source in evidence_paths},
     }
@@ -404,7 +404,7 @@ def build_variables(root):
 def validate_tokens(root: Path, variables: dict[str, str]):
     """Require every authored token to have a nonempty computed value."""
     pattern = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")
-    for path in sorted((root / "manuscript").glob("*.md")):
+    for path in sorted((root / "docs/manuscript").glob("*.md")):
         keys = set(pattern.findall(path.read_text(encoding="utf-8")))
         missing = keys - variables.keys()
         if missing:

@@ -389,12 +389,12 @@ FIGURES = {
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path("manuscript/figures/cicy3-atlas.png"),
+    parser.add_argument("--output", type=Path, default=Path("docs/manuscript/figures/cicy3-atlas.png"),
                         help="single atlas output (PNG or PDF)")
     parser.add_argument("--summary", type=Path, help="also write the archived readback summary as JSON")
     parser.add_argument("--suite", action="store_true", help="render all manuscript figures and write the analysis JSON")
     parser.add_argument("--format", choices=("png", "pdf"), default="png", help="file format for the figure suite")
-    parser.add_argument("--figures-dir", type=Path, default=Path("manuscript/figures"), help="suite figure directory")
+    parser.add_argument("--figures-dir", type=Path, default=Path("docs/manuscript/figures"), help="suite figure directory")
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="suite analysis JSON directory")
     args = parser.parse_args()
     if args.suite:
