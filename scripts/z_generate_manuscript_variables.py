@@ -47,11 +47,11 @@ def figures_from_source(root, variables):
         "fig:integral_invariants": "scripts/integral_invariants.py",
     }
     pattern = re.compile(
-        r"^!\[(.+)\]\(\.\./output/figures/([a-z0-9-]+\.png)\)\{#(fig:[a-z0-9_]+)\b[^}]*\}",
+        r"^!\[(.+)\]\(\.\./\.\./output/figures/([a-z0-9-]+\.png)\)\{#(fig:[a-z0-9_]+)\b[^}]*\}",
         re.MULTILINE,
     )
     specs = []
-    for source in sorted((root / "manuscript").glob("*.md")):
+    for source in sorted((root / "docs/manuscript").glob("*.md")):
         text, _ = substitute_manuscript_text(source.read_text(encoding="utf-8"), variables)
         for caption, filename, label in pattern.findall(text):
             specs.append(Figure(label, filename, caption, descriptions[label],
@@ -65,7 +65,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     variables, evidence = build_variables(root)
     validate_tokens(root, variables)
-    config = yaml.safe_load((root / "manuscript" / "config.yaml").read_text(encoding="utf-8"))
+    config = yaml.safe_load((root / "docs/manuscript" / "config.yaml").read_text(encoding="utf-8"))
     citation = yaml.safe_load((root / "CITATION.cff").read_text(encoding="utf-8"))
     doi = config.get("publication", {}).get("doi")
     github_release = variables["GITHUB_RELEASE_URL"]
@@ -90,7 +90,7 @@ def main():
     publish_generated_figures(
         root / "output" / "figures",
         specs,
-        [root / "manuscript" / "figures" / spec.filename for spec in specs],
+        [root / "docs/manuscript" / "figures" / spec.filename for spec in specs],
         schema_version="py-cipro-figures/v1",
     )
     cover = root / "output" / "cover"

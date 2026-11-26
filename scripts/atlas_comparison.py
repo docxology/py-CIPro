@@ -108,7 +108,7 @@ def plot_atlas_comparison(analysis, outputs):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=ROOT / "data" / "atlas-comparison.json")
-    parser.add_argument("--figure", type=Path, default=ROOT / "manuscript" / "figures" / "atlas-comparison.png")
+    parser.add_argument("--figure", type=Path, default=ROOT / "docs/manuscript" / "figures" / "atlas-comparison.png")
     parser.add_argument("--vector", type=Path, help="Also save a vector PDF")
     args = parser.parse_args()
     analysis = atlas_comparison(get_catalog())

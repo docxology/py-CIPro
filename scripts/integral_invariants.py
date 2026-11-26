@@ -218,7 +218,7 @@ def main():
     report = compute_integral_invariants()
     args.data.parent.mkdir(parents=True, exist_ok=True)
     args.data.write_text(json.dumps(report, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
-    plot(report, args.figure or [Path("manuscript/figures/integral-invariants.png")])
+    plot(report, args.figure or [Path("docs/manuscript/figures/integral-invariants.png")])
     print(json.dumps(report["summary"], indent=2))
 
 

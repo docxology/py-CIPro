@@ -1,11 +1,12 @@
 # Render the research manuscript
 
-The sources in [`manuscript/`](../manuscript/) use
-[`docxology/template` v5.0.2](https://github.com/docxology/template/releases/tag/v5.0.2)
-at commit `9bebe79195b8f6be4a3da02838fcd296b3012a56`. The PDF needs
-Python 3.14 or later, uv, Pandoc, pandoc-crossref, XeLaTeX, and BibTeX.
-The analysis and render use the bundled CIPro release and run without a
-Wolfram kernel.
+The [canonical manuscript](manuscript/README.md) renders with
+[Template at commit `87704fe`](https://github.com/docxology/template/tree/87704feae0a4490ef7dad9c931d268e8c30273c2).
+Use Python 3.14, uv, Pandoc 3.14, a compatible pandoc-crossref, XeLaTeX,
+BibTeX, and Poppler. The analysis and render use the bundled CIPro release
+and run without a Wolfram kernel. The packaged dashboard PDF and vector
+figures retain their [original release provenance](../src/py_cipro/research_data/provenance.json)
+from Template 5.0.2.
 
 ## What the build reads
 
@@ -21,7 +22,7 @@ Wolfram kernel.
 | [`data/integral-invariants.json`](../data/integral-invariants.json) | Record-level divisibilities of the cubic form and Chern functional on the ambient divisor lattice, grouped by Hodge numbers |
 | [`data/cubic-refinement.json`](../data/cubic-refinement.json) | Repeated and diagonal cubic divisibility across the same archive, with matched record witnesses |
 | [`data/index-divisibility.json`](../data/index-divisibility.json) | Fixed divisors of the ambient line-bundle index, signed evaluation checks, and record-level results |
-| [`manuscript/references.bib`](../manuscript/references.bib) | Primary geometry, software, and dataset citations |
+| [`references.bib`](manuscript/references.bib) | Primary geometry, software, and dataset citations |
 
 Numbered definitions, propositions, lemmas, corollaries, examples,
 equations, figures, and tables use stable source labels. The template
@@ -31,29 +32,29 @@ source and regenerate the output.
 
 ## Set up the pinned renderer
 
-Start in a clean, committed py-CIPro checkout so the revision and indexed
-source provenance correspond to the PDF. Use a dedicated renderer checkout
-and the template's [private project workflow](https://github.com/docxology/template/blob/v5.0.2/docs/maintenance/private-projects-repo.md).
+Start in a clean, committed py-CIPro checkout. Put a second checkout under
+the pinned renderer's `projects/working/` so its source revision and
+output provenance identify the exact render.
 
 ```sh
-py_cipro_root="$(pwd -P)"
-project_name="$(basename "$py_cipro_root")"
+set -e
+source_checkout="$(pwd -P)"
+source_commit="$(git rev-parse HEAD)"
 render_root="$(mktemp -d "${TMPDIR:-/tmp}/py-cipro-render.XXXXXX")"
-git clone --branch v5.0.2 --single-branch --depth 1 \
-  https://github.com/docxology/template.git "$render_root/template"
-cd "$render_root/template"
-test "$(git rev-parse HEAD)" = 9bebe79195b8f6be4a3da02838fcd296b3012a56 || exit 1
-mkdir -p "$render_root/private/working"
-ln -s "$py_cipro_root" "$render_root/private/working/$project_name"
-export TEMPLATE_PRIVATE_PROJECTS_ROOT="$render_root/private"
-uv sync --locked --no-dev
-uv pip install --python .venv/bin/python 'sympy==1.14.0' 'wolframclient==1.4.0'
-uv run --no-sync python -m infrastructure.orchestration link-projects --dry-run
-uv run --no-sync python -m infrastructure.orchestration link-projects
+renderer="$render_root/template"
+git clone https://github.com/docxology/template.git "$renderer"
+git -C "$renderer" checkout --detach 87704feae0a4490ef7dad9c931d268e8c30273c2
+project_name=py-CIPro
+py_cipro_root="$renderer/projects/working/$project_name"
+mkdir -p "$renderer/projects/working"
+git clone "$source_checkout" "$py_cipro_root"
+git -C "$py_cipro_root" checkout --detach "$source_commit"
+cd "$renderer"
+uv sync --locked
+uv pip install --python .venv/bin/python 'sympy==1.14.0' 'wolframclient==1.4.0' 'requests>=2.32,<3'
 ```
 
-The locked template environment includes Matplotlib 3.11.2. You can use
-the same interpreter for the analysis and manuscript.
+Use this dedicated renderer environment for the analysis and manuscript.
 
 ## Recompute the results and figures
 
@@ -103,25 +104,24 @@ workflow.
 
 From the template checkout, run the project producer with the renderer
 environment. It validates required placeholders, stages registered figures,
-renders the graphical abstract, writes structured outputs, and calls the
-template's manuscript injection function. The private project lives outside
-the renderer's project custody root, so run the producer explicitly before
-Stage 03. Stage 03 consumes the hydrated result while retaining its pre-render
-and publication checks. Install `tocbibind` in a minimal TeX setup for the
+renders the graphical abstract, writes structured outputs, and creates the
+resolved manuscript in `output/manuscript/`. Run the producer explicitly before
+Stage 03, then tell the renderer to use that resolved result. Stage 04 checks
+the figures, source composition, and evidence. Install `tocbibind` in a minimal TeX setup for the
 linked bibliography entry.
 
 ```sh
-cd "$render_root/template"
-PYTHONPATH="$py_cipro_root/src:$render_root/template" \
+cd "$renderer"
+PYTHONPATH="$py_cipro_root/src:$renderer" \
   uv run --no-sync python "$py_cipro_root/scripts/z_generate_manuscript_variables.py"
 uv run --no-sync python scripts/pipeline/stage_03_render.py \
   --skip-manuscript-hydration --project "working/$project_name"
 uv run --no-sync python scripts/pipeline/stage_04_validate.py --project "working/$project_name"
 ```
 
-The combined PDF is in `output/pdf/` inside the py-CIPro checkout. The
-template names it from the checkout directory. Its validation and provenance
-reports are in `output/reports/`. The project preamble sets the same red
+Find the combined PDF at `output/pdf/py-CIPro_combined.pdf`, HTML at
+`output/web/index.html`, and validation and provenance reports at
+`output/reports/` in the isolated py-CIPro checkout. The project preamble sets the same red
 for internal references, citations, and external links. Use
 `pdfinfo -url` and `pdfinfo -dests` to inspect the resolved targets.
 The authored variables resolve into
@@ -130,7 +130,7 @@ The authored variables resolve into
 record to the input, figure, and cover SHA-256 digests. Figure captions and
 alt text are registered in `output/figures/figure_registry.json`. The cover
 art is in `output/cover/`, and the template reads its image and description
-from `paper.cover` in `manuscript/config.yaml`.
+from `paper.cover` in `docs/manuscript/config.yaml`.
 
 ## Refresh the dashboard's manuscript assets
 
@@ -161,7 +161,7 @@ packaged routes. [Dashboard guide](dashboard.md)
 The render writes the GitHub tag URL into the manuscript and validates it
 against `CITATION.cff` and `.zenodo.json`. For a Zenodo deposit, reserve a
 production **version DOI** on the draft, then set the identifier in both
-`publication.doi` in `manuscript/config.yaml` and `doi` in
+`publication.doi` in `docs/manuscript/config.yaml` and `doi` in
 `CITATION.cff`. The template prints it as a clickable link on the cover.
 Render and package again, check the visible DOI and both PDF links, and
 archive the exact tested files. Zenodo registers the DOI when the record
